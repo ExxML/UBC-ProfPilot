@@ -82,13 +82,24 @@ class BrowserPool {
     if (this.contextPool.length > 0) {
       const context = this.contextPool.pop();
       try {
-        // Quick health check
-        await context.pages();
+        // Quick health check - try to access pages and verify context is usable
+        const pages = await context.pages();
+        
+        // Additional check to ensure we can create a new page
+        const testPage = await context.newPage();
+        await testPage.close();
+        
         this.contextLastUsed.set(context, Date.now());
         return this.wrapContextForReuse(context);
       } catch (error) {
         // Context is dead, continue to create new one
         console.warn('Pooled context unhealthy, creating new:', error.message);
+        // Try to properly close the unhealthy context
+        try {
+          await context.close();
+        } catch (closeError) {
+          // Ignore close errors for unhealthy contexts
+        }
       }
     }
 
@@ -206,13 +217,28 @@ class BrowserPool {
       try {
         // Clear pages but keep context alive
         const pages = await this.pages();
-        await Promise.all(pages.map(page => page.close().catch(() => {})));
+        await Promise.all(pages.map(page => {
+          return page.close().catch(error => {
+            // Ignore errors from pages that are already closed
+            if (!error.message.includes('Target page, context or browser has been closed')) {
+              console.warn('Error closing page:', error.message);
+            }
+          });
+        }));
         
-        // Return to pool if there's space and not shutting down
-        if (pool.contextPool.length < CONFIG.MAX_CONTEXT_POOL_SIZE && !pool.isShuttingDown) {
-          pool.contextPool.push(this);
-          pool.contextLastUsed.set(this, Date.now());
-          return;
+        // Verify context is still healthy before returning to pool
+        try {
+          await this.pages(); // Health check
+          
+          // Return to pool if there's space and not shutting down
+          if (pool.contextPool.length < CONFIG.MAX_CONTEXT_POOL_SIZE && !pool.isShuttingDown) {
+            pool.contextPool.push(this);
+            pool.contextLastUsed.set(this, Date.now());
+            return;
+          }
+        } catch (healthError) {
+          // Context is no longer healthy, don't return to pool
+          console.warn('Context unhealthy, not returning to pool:', healthError.message);
         }
       } catch (error) {
         console.warn('Error preparing context for reuse:', error.message);
