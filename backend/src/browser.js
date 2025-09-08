@@ -58,49 +58,7 @@ class BrowserPool {
     // Create persistent browser
     const browser = await webkit.launch({
       headless: true,
-      args: [
-        // Core security and performance
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-field-trial-config',
-        '--disable-back-forward-cache',
-        '--disable-hang-monitor',
-        '--disable-prompt-on-repost',
-        '--disable-sync',
-        '--disable-translate',
-        '--disable-extensions',
-        '--disable-plugins',
-        '--disable-web-security',
-        '--disable-features=TranslateUI,BlinkGenPropertyTrees,VizDisplayCompositor',
-        '--disable-ipc-flooding-protection',
-        '--disable-component-extensions-with-background-pages',
-        '--disable-default-apps',
-        '--disable-background-networking',
-        '--disable-breakpad',
-        '--disable-client-side-phishing-detection',
-        '--disable-component-update',
-        '--disable-domain-reliability',
-        '--disable-sync',
-        // Memory optimizations
-        '--memory-pressure-off',
-        '--max_old_space_size=256',
-        '--optimize-for-size',
-        '--no-zygote',
-        '--single-process',  // Ultra aggressive: single process
-        '--disable-features=VizServiceDisplay',
-        '--disable-features=VizHitTestSurfaceLayer',
-        '--js-flags=--max-old-space-size=128 --gc-interval=100',
-        // Network optimizations
-        '--aggressive-cache-discard',
-        '--disable-features=NetworkService',
-        '--disable-background-tasks'
-      ],
       timeout: CONFIG.BROWSER_TIMEOUT,
-      // Ultra minimal browser options
       env: {
         ...process.env,
         NODE_OPTIONS: '--max-old-space-size=256'
@@ -561,7 +519,7 @@ async function createPage(context) {
   await page.setDefaultNavigationTimeout(CONFIG.NAVIGATION_TIMEOUT);
   
   // Disable unnecessary features
-  await page.setViewportSize({ width: 640, height: 480 });
+  await page.setViewportSize({ width: 426, height: 240 });
   
   return page;
 }
