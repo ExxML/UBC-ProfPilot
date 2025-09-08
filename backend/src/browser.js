@@ -60,7 +60,6 @@ class BrowserPool {
       headless: true,
       args: [
         // Core security and performance
-        '--no-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--disable-software-rasterizer',
