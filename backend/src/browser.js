@@ -8,8 +8,8 @@ const CONFIG = {
   MAX_CONTEXTS_PER_BROWSER: parseInt(process.env.MAX_CONTEXTS_PER_BROWSER) || 3,  // Reduced contexts
   MAX_CONTEXT_POOL_SIZE: parseInt(process.env.MAX_CONTEXT_POOL_SIZE) || 2,  // Context pool for reuse
   BROWSER_TIMEOUT: parseInt(process.env.BROWSER_TIMEOUT) || 20000,  // Reduced timeout
-  PAGE_TIMEOUT: parseInt(process.env.PAGE_TIMEOUT) || 8000,  // Much faster page timeout
-  NAVIGATION_TIMEOUT: parseInt(process.env.NAVIGATION_TIMEOUT) || 5000,  // Fast navigation
+  PAGE_TIMEOUT: parseInt(process.env.PAGE_TIMEOUT) || 20000,  // Much faster page timeout
+  NAVIGATION_TIMEOUT: parseInt(process.env.NAVIGATION_TIMEOUT) || 20000,  // Fast navigation
   IDLE_TIMEOUT: parseInt(process.env.IDLE_TIMEOUT) || 120000,  // 2 minutes idle timeout
   CONTEXT_IDLE_TIMEOUT: parseInt(process.env.CONTEXT_IDLE_TIMEOUT) || 60000,  // 1 minute context idle
   MEMORY_PRESSURE_THRESHOLD: parseFloat(process.env.MEMORY_PRESSURE_THRESHOLD) || 0.6,  // Lower threshold
