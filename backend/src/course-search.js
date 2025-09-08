@@ -1,6 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { getBrowser, createOptimizedContext } = require('./browser');
+const { getBrowser, createContext, createPage, navigate } = require('./browser');
 
 // Function to search for all professors in a department at a university
 async function searchProfessorsByDepartment(universityNumber, departmentNumber, callback) {
@@ -8,20 +8,20 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
     console.log(`Fetching URL: ${searchURL}`);
 
     try {
-        // Use optimized browser pool with enhanced resource management
+        // Use browser pool
         const browser = await getBrowser();
         
         // Start timing
         console.time('Professor Load Time');
         
-        // Create optimized context with built-in resource blocking
-        const context = await createOptimizedContext(browser);
-        const page = await context.newPage();
-        page.setDefaultTimeout(16000);
-        page.setDefaultNavigationTimeout(20000);
+        // Create context with resource blocking and caching
+        let context;
+        let page;
+        try {
+        context = await createContext(browser);
+        page = await createPage(context);
         
-        // Navigate to the department search page
-        await page.goto(searchURL, { waitUntil: 'domcontentloaded', timeout: 20000 });
+        await navigate(page, searchURL);
         
         // Click "Load More" button until all professors are loaded
         // Try to get total number of professors from any header/indicator
@@ -178,9 +178,6 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
         const html = await page.content();
         console.timeEnd('Professor Load Time');
         
-        // Close context (browser is managed by pool)
-        await context.close();
-        
         // Parse the HTML to extract professor information
         const $ = cheerio.load(html);
         const liSelector = "a.TeacherCard__StyledTeacherCard-syjs0d-0";
@@ -229,6 +226,9 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
         
         console.log(`Total professors found: ${professors.length}`);
         callback(null, professors);
+        } finally {
+            try { if (context) await context.close(); } catch (_) {}
+        }
         
     } catch (error) {
         console.error('Error in searchProfessorsByDepartment:', error.message);

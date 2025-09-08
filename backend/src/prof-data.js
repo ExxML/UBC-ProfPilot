@@ -1,4 +1,4 @@
-const { getBrowser, createOptimizedContext } = require('./browser');
+const { getBrowser, createContext, createPage, navigate } = require('./browser');
 const cheerio = require('cheerio');
 const OpenAI = require('openai');
 require('dotenv').config();
@@ -7,16 +7,6 @@ require('dotenv').config();
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY // Set this environment variable in .env
 });
-
-// Add headers to mimic a real browser request
-const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-    'Cache-Control': 'max-age=0'
-};
 
 // Function to summarize all ratings using GPT-4o-mini
 async function summarizeRatings(ratings) {
@@ -83,23 +73,22 @@ async function summarizeRatings(ratings) {
 async function getProfData(profURL, callback) {
     console.log(`Making request to: ${profURL}`);
     console.time('Total Professor Data Search Time');
+    let context;
+    let page;
     try {
-        // Use optimized browser pool with enhanced resource management
+        // Use browser pool
         const browser = await getBrowser();
         
         // Start timing
         console.time('Rating Load Time');
         
-        // Create optimized context with built-in resource blocking
-        const context = await createOptimizedContext(browser);
-        const page = await context.newPage();
-        page.setDefaultTimeout(16000);
-        page.setDefaultNavigationTimeout(20000);
+        // Create context with resource blocking and caching
+        context = await createContext(browser);
+        page = await createPage(context);
         
-        // Navigate to the professor's page with faster settings
-        await page.goto(profURL, { waitUntil: 'domcontentloaded', timeout: 20000 });
+        await navigate(page, profURL);
         
-        // Click "Load More Ratings" button until all ratings are loaded - OPTIMIZED VERSION
+        // Click "Load More Ratings" button until all ratings are loaded
         // Get total number of ratings from header
         const totalRatings = parseInt(await page.$eval("[class*='TeacherRatingTabs__StyledTab'][class*='selected']", el => el.textContent.match(/\d+/)[0]));
         // Multiply 4 because each rating has 3 more empty ratings. Divide 20 because 20 ratings (5 real ratings + 15 empty ratings) are loaded each time.
@@ -240,9 +229,6 @@ async function getProfData(profURL, callback) {
         // Get the page content after all ratings are loaded
         const html = await page.content();
         console.timeEnd('Rating Load Time');
-        
-        // Close context (browser is managed by pool)
-        await context.close();
             
             // CSS Selector - Using even more generic selectors to improve robustness
             var wouldTakeAgain = "[class*='TeacherFeedback'] div:nth-child(1) [class*='FeedbackNumber']"
@@ -423,6 +409,10 @@ async function getProfData(profURL, callback) {
             error: error.message,
             status: null
         });
+    } finally {
+        try {
+            if (context) await context.close();
+        } catch (_) {}
     }
 }
 
