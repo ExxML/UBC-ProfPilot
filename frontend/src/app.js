@@ -9,21 +9,22 @@ function App() {
   const [activeTab, setActiveTab] = useState('professor');
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen relative text-gray-900 ">
+      <div className="liquid-bg" aria-hidden="true"></div>
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="glass shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-3xl font-bold text-gray-900">UBC ProfPilot</h1>
-              <span className="ml-3 text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              <h1 className="text-3xl font-bold">UBC ProfPilot</h1>
+              <span className="ml-3 text-sm text-gray-700 bg-white/70 px-2 py-1 rounded-full">
                 RateMyProfessors Scraper & Summarizer
               </span>
             </div>
             <div className="flex items-center">
-              <img src={RMPIcon} alt="RMP" className="h-20 w-20" style={{marginRight: 7}} />
+              <img src={UBCIcon} alt="UBC" className="h-20 w-50" style={{marginLeft: 0}} />
               <img src={HandshakeIcon} alt="Handshake" className="h-14 w-14" />
-              <img src={UBCIcon} alt="UBC" className="h-20 w-50" />
+              <img src={RMPIcon} alt="RMP" className="h-20 w-20" style={{marginRight: 0}} />
             </div>
           </div>
         </div>
@@ -32,14 +33,14 @@ function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="glass rounded-lg shadow-sm border overflow-hidden">
           <nav className="flex border-b border-gray-200">
             <button
               onClick={() => setActiveTab('professor')}
               className={`flex-1 py-4 px-6 text-sm font-medium text-center border-b-2 transition-colors duration-200 ${
                 activeTab === 'professor'
-                  ? 'border-primary-500 text-primary-600 bg-primary-50'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'border-primary-600 text-primary-700 bg-white/70'
+                  : 'border-transparent text-gray-700 hover:text-gray-900 hover:bg-white/50'
               }`}
             >
               <div className="flex items-center justify-center">
@@ -53,8 +54,8 @@ function App() {
               onClick={() => setActiveTab('course')}
               className={`flex-1 py-4 px-6 text-sm font-medium text-center border-b-2 transition-colors duration-200 ${
                 activeTab === 'course'
-                  ? 'border-primary-500 text-primary-600 bg-primary-50'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'border-primary-600 text-primary-700 bg-white/70'
+                  : 'border-transparent text-gray-700 hover:text-gray-900 hover:bg-white/50'
               }`}
             >
               <div className="flex items-center justify-center">
@@ -75,14 +76,13 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
+      <footer className="glass border-t border-gray-200 mt-12 fixed bottom-0 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center text-sm text-gray-500">
-             <p className="mt-1">Data sourced from <a href="https://www.ratemyprofessors.com" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700 underline">RateMyProfessors</a></p>
-             <p className="mt-1">&nbsp;</p>
+             <p className="mt-1" style={{marginBottom: "10px"}}>Data sourced from <a href="https://www.ratemyprofessors.com" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700 underline">RateMyProfessors</a></p>
            </div>
            <div className="text-center text-sm text-gray-500">
-             <p className="mt-1">This website is not affiliated with RateMyProfessors or the University of British Columbia.</p>
+             <p className="mt-1">This website is not affiliated with RateMyProfessors or the University of British Columbia</p>
           </div>
         </div>
       </footer>
