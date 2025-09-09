@@ -3,11 +3,86 @@ const professorData = require('./src/prof-data')
 const findProfessorsForCourse = require('./src/course-data')
 const { closeBrowser, getBrowserStats } = require('./src/browser')
 const express = require('express');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 var app = express();
 const cors = require('cors');
 
 // app.use(cors({origin: "https://frontend.com"}));
 app.use(cors());
+
+const server = createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+// Store active connections by session ID
+const activeConnections = new Map();
+
+io.on('connection', (socket) => {
+    console.log('Client connected:', socket.id);
+    
+    socket.on('start-professor-search', (data) => {
+        const { fname, lname, university, sessionId } = data;
+        activeConnections.set(sessionId, socket.id);
+        
+        // Emit progress updates
+        const emitProgress = (phase, percentage, message) => {
+            socket.emit('search-progress', { phase, percentage, message });
+        };
+        
+        emitProgress('url-search', 10, 'Searching for professor profile...');
+        
+        professorURL(fname, lname, university, (urlResponse) => {
+            if (!urlResponse || !urlResponse.URL) {
+                socket.emit('search-error', {
+                    error: 'Professor not found or error generating URL',
+                    details: urlResponse ? urlResponse.error : 'No response from URL generator'
+                });
+                return;
+            }
+            
+            emitProgress('url-found', 25, 'Professor profile found, loading data...');
+            
+            professorData(urlResponse.URL, (data) => {
+                if (data.error) {
+                    socket.emit('search-error', {
+                        error: 'Error fetching professor data',
+                        details: data.error,
+                        status: data.status
+                    });
+                    return;
+                }
+                
+                socket.emit('search-complete', {
+                    URL: urlResponse.URL,
+                    first_name: urlResponse.lname,  // First/last names are swapped
+                    last_name: urlResponse.fname,
+                    university: urlResponse.university,
+                    would_take_again: data.percentage,
+                    difficulty: data.difficulty,
+                    overall_quality: data.quality,
+                    ratings: data.ratings,
+                    summary: data.summary
+                });
+            }, emitProgress);
+        }, emitProgress);
+    });
+    
+    socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+        // Remove from active connections
+        for (let [sessionId, socketId] of activeConnections.entries()) {
+            if (socketId === socket.id) {
+                activeConnections.delete(sessionId);
+                break;
+            }
+        }
+    });
+});
 
 app.get('/professor', function (req, res) {
     const fname = req.query.fname;
@@ -108,7 +183,7 @@ app.get('/course', function (req, res) {
 });
 
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running on ${PORT}`);
 });
 

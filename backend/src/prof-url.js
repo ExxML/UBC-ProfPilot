@@ -12,7 +12,7 @@ const headers = {
     'Referer': 'https://www.ratemyprofessors.com/'
 };
 
-function searchForProf(fname, lname, university, callback) { 
+function searchForProf(fname, lname, university, callback, progressCallback = null) { 
     console.log(`\nSearching for professor: ${fname} ${lname} at ${university}`);
     
     fname = fname.toLowerCase().trim(); // trimming for no extra characters
@@ -22,6 +22,10 @@ function searchForProf(fname, lname, university, callback) {
     const searchURL = `https://www.ratemyprofessors.com/search/professors?q=${encodeURIComponent(fname + ' ' + lname)}`;
     console.log(`Fetching URL: ${searchURL}`);
 
+    if (progressCallback) {
+        progressCallback('url-search', 15, 'Contacting RateMyProfessors...');
+    }
+
     axios.get(searchURL, { 
         headers: headers,
         timeout: 10000 // 10 second timeout
@@ -29,6 +33,10 @@ function searchForProf(fname, lname, university, callback) {
         if (response.status === 200) {
             const html = response.data;
             console.log('Received response from RateMyProfessors');
+            
+            if (progressCallback) {
+                progressCallback('url-search', 20, 'Processing search results...');
+            }
             
             // Save the HTML for debugging
             // require('fs').writeFileSync('rmp_debug.html', html);

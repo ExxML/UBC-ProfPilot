@@ -70,7 +70,7 @@ async function summarizeRatings(ratings) {
     }
 }
 
-async function getProfData(profURL, callback) {
+async function getProfData(profURL, callback, progressCallback = null) {
     console.log(`Making request to: ${profURL}`);
     console.time('Total Professor Data Search Time');
     let context;
@@ -78,6 +78,10 @@ async function getProfData(profURL, callback) {
     try {
         // Use browser pool
         const browser = await getBrowser();
+        
+        if (progressCallback) {
+            progressCallback('page-load', 30, 'Opening professor page...');
+        }
         
         // Start timing
         console.time('Rating Load Time');
@@ -87,6 +91,10 @@ async function getProfData(profURL, callback) {
         page = await createPage(context);
         
         await navigate(page, profURL);
+        
+        if (progressCallback) {
+            progressCallback('page-load', 40, 'Page loaded, analyzing ratings...');
+        }
         
         // Click "Load More Ratings" button until all ratings are loaded
         // Get total number of ratings from header
@@ -101,6 +109,10 @@ async function getProfData(profURL, callback) {
         let cachedButtonSelector = null; // Cache the working button selector
         
         console.log('\nStep 1: Starting to load all ratings...');
+        
+        if (progressCallback) {
+            progressCallback('ratings-load', 45, `Loading all ${totalRatings} ratings...`);
+        }
         
         // First, try to find and cache the working button selector
         const findButtonSelector = async () => {
@@ -151,7 +163,13 @@ async function getProfData(profURL, callback) {
                 currentRatingsCount = await page.$$eval('[class*="Rating-"], [class*="RatingsList"] > div, [class*="Comments"] > div', elements => elements.length);
                 
                 if (attemptCount % 5 === 0) { // Log every 5 attempts to reduce spam
-                    console.log(`Attempt ${attemptCount}: ${Math.floor(currentRatingsCount / 4)} ratings loaded`);  // divide by 4 because each rating has 3 empty elements (for some reason?)
+                    const loadedCount = Math.floor(currentRatingsCount / 4);
+                    console.log(`Attempt ${attemptCount}: ${loadedCount} ratings loaded`);  // divide by 4 because each rating has 3 empty elements (for some reason?)
+                    
+                    if (progressCallback && totalRatings > 0) {
+                        const progress = Math.min(45 + (loadedCount / totalRatings) * 35, 80);
+                        progressCallback('ratings-load', progress, `Loading ratings: ${loadedCount}/${totalRatings}`);
+                    }
                 }
                 
                 // Find and click the load more button (get fresh reference each time)
@@ -389,7 +407,16 @@ async function getProfData(profURL, callback) {
             
             // Generate summary of all ratings using GPT-4o-mini
             console.log('\nStep 2: Generating AI summary of ratings...');
+            
+            if (progressCallback) {
+                progressCallback('ai-summary', 85, 'Generating AI summary...');
+            }
+            
             const summary = await summarizeRatings(ratings);
+            
+            if (progressCallback) {
+                progressCallback('complete', 100, 'Search complete!');
+            }
             
             // Sort ratings by most recent first (assuming they're already in that order from scraping)
             callback({
