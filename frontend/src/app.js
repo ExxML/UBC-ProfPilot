@@ -9,7 +9,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('professor');
 
   return (
-    <div className="min-h-screen relative text-gray-900 ">
+    <div className="min-h-screen flex flex-col text-gray-900">
       <div className="liquid-bg" aria-hidden="true"></div>
       {/* Header */}
       <header className="glass shadow-sm border-b border-gray-200">
@@ -31,7 +31,7 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mb-24">
         {/* Tab Navigation */}
         <div className="glass rounded-lg shadow-sm border overflow-hidden">
           <nav className="flex border-b border-gray-200">
