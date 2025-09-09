@@ -21,6 +21,9 @@ const CircularProgress = ({
     'page-load': { color: '#f59e0b', icon: '📄', bgColor: '#fef3c7' },
     'ratings-load': { color: '#8b5cf6', icon: '⭐', bgColor: '#ede9fe' },
     'ai-summary': { color: '#06b6d4', icon: '🤖', bgColor: '#cffafe' },
+    'department-load': { color: '#3b82f6', icon: '🏢', bgColor: '#dbeafe' },
+    'professor-load': { color: '#f59e0b', icon: '👨‍🏫', bgColor: '#fef3c7' },
+    'course-check': { color: '#8b5cf6', icon: '📚', bgColor: '#ede9fe' },
     'complete': { color: '#10b981', icon: '🎉', bgColor: '#d1fae5' },
     'error': { color: '#ef4444', icon: '❌', bgColor: '#fee2e2' }
   };
@@ -149,6 +152,9 @@ const getPhaseTitle = (phase) => {
     'page-load': 'Loading Page',
     'ratings-load': 'Loading Ratings',
     'ai-summary': 'Generating Summary',
+    'department-load': 'Loading Department',
+    'professor-load': 'Finding Professors',
+    'course-check': 'Checking Course Ratings',
     'complete': 'Complete!',
     'error': 'Error Occurred'
   };
@@ -164,6 +170,9 @@ const getPhaseOrder = (phase) => {
     'page-load': 2,
     'ratings-load': 3,
     'ai-summary': 4,
+    'department-load': 0,
+    'professor-load': 1,
+    'course-check': 2,
     'complete': 5,
     'error': -1
   };
