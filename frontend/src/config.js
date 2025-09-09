@@ -1,4 +1,16 @@
-const departments = {
+// API Configuration
+export const API_BACKEND_URL = 'https://ubc-profpilot-backend.onrender.com';
+
+// University Configuration
+export const UNIVERSITY_CONFIG = {
+  name: 'University of British Columbia',
+  shortName: 'UBC',
+  number: '1413'
+};
+
+// Department mapping for RateMyProfessors department numbers
+// These numbers correspond to UBC departments on RateMyProfessors
+export const DEPARTMENT_MAPPINGS = {
     "Accounting": 1,
     "Administration": 248,
     "Agriculture": 2,
@@ -125,6 +137,4 @@ const departments = {
     "Scandinavian": 1022,
     "Science": 48,
     "Slavic Languages": 1322
-  };
-  
-  export default departments;  
+};

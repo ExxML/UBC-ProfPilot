@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_BACKEND_URL, UNIVERSITY_CONFIG } from '../config.js';
 
 const ProfessorSearch = () => {
   const [formData, setFormData] = useState({
@@ -25,11 +26,11 @@ const ProfessorSearch = () => {
     setResult(null);
 
     try {
-      const response = await axios.get('http://localhost:3000/professor', {
+      const response = await axios.get(`${API_BACKEND_URL}/professor`, {
         params: {
           fname: formData.fname,
           lname: formData.lname,
-          university: 'University of British Columbia'
+          university: UNIVERSITY_CONFIG.name
         }
       });
       setResult(response.data);
@@ -82,10 +83,10 @@ const ProfessorSearch = () => {
         {/* University Info */}
         <div className="bg-gray-50 p-4 rounded-md">
           <p className="text-sm text-gray-600">
-            <span className="font-medium">University:</span> University of British Columbia (UBC)
+            <span className="font-medium">University:</span> {UNIVERSITY_CONFIG.name} ({UNIVERSITY_CONFIG.shortName})
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            Search is automatically limited to UBC professors
+            Search is automatically limited to {UNIVERSITY_CONFIG.shortName} professors
           </p>
         </div>
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import departments from './department-number-map.js';
+import { API_BACKEND_URL, DEPARTMENT_MAPPINGS, UNIVERSITY_CONFIG } from '../config.js';
 
 const CourseSearch = () => {
   const [formData, setFormData] = useState({
@@ -26,11 +26,11 @@ const CourseSearch = () => {
     setResult(null);
 
     try {
-      const response = await axios.get('http://localhost:3000/course', {
+      const response = await axios.get(`${API_BACKEND_URL}/course`, {
         params: {
           course_name: formData.course_name,
-          department_number: departments[formData.department_name],
-          university_number: '1413' // UBC university number
+          department_number: DEPARTMENT_MAPPINGS[formData.department_name],
+          university_number: UNIVERSITY_CONFIG.number
         }
       });
       setResult(response.data);
@@ -79,7 +79,7 @@ const CourseSearch = () => {
               required
             >
               <option value="">Select a department...</option>
-              {Object.keys(departments).sort().map((deptName) => (
+              {Object.keys(DEPARTMENT_MAPPINGS).sort().map((deptName) => (
                 <option key={deptName} value={deptName}>
                   {deptName}
                 </option>
@@ -94,13 +94,13 @@ const CourseSearch = () => {
         {/* University Info */}
         <div className="bg-gray-50 p-4 rounded-md">
           <p className="text-sm text-gray-600">
-            <span className="font-medium">University:</span> University of British Columbia (UBC)
+            <span className="font-medium">University:</span> {UNIVERSITY_CONFIG.name} ({UNIVERSITY_CONFIG.shortName})
           </p>
           <p className="text-sm text-gray-600">
-            <span className="font-medium">University Number:</span> 1413
+            <span className="font-medium">University Number:</span> {UNIVERSITY_CONFIG.number}
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            Search is automatically limited to UBC courses
+            Search is automatically limited to {UNIVERSITY_CONFIG.shortName} courses and professors
           </p>
         </div>
 
