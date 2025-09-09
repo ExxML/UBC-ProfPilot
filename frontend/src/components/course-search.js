@@ -59,11 +59,11 @@ const CourseSearch = () => {
               value={formData.course_name}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="e.g., CPSC 110, MATH 100, ENGL 110"
+              placeholder="e.g., CPSC110, MATH100, ENGL110"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              Enter the course code
+              Enter the course code (no spaces)
             </p>
           </div>
           <div>
