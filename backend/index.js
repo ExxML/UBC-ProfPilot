@@ -72,6 +72,44 @@ io.on('connection', (socket) => {
         }, emitProgress);
     });
     
+    socket.on('start-course-search', (data) => {
+        const { course_name, department_number, university_number, sessionId } = data;
+        activeConnections.set(sessionId, socket.id);
+        
+        // Emit progress updates
+        const emitProgress = (phase, percentage, message) => {
+            socket.emit('course-search-progress', { phase, percentage, message });
+        };
+        
+        emitProgress('department-load', 5, 'Starting course search...');
+        
+        findProfessorsForCourse(course_name, department_number, university_number, (error, professors) => {
+            if (error) {
+                socket.emit('course-search-error', {
+                    error: 'Error searching for course professors',
+                    details: error.message
+                });
+                return;
+            }
+            
+            socket.emit('course-search-complete', {
+                course_name: course_name,
+                department_number: department_number,
+                university_number: university_number,
+                professors_count: professors.length,
+                professors: professors.map(prof => ({
+                    name: prof.name,
+                    first_name: prof.lastName,  // First/last names are swapped
+                    last_name: prof.firstName,
+                    department: prof.department,
+                    university: prof.university,
+                    profile_url: prof.profileURL,
+                    num_ratings: prof.numRatings
+                }))
+            });
+        }, emitProgress);
+    });
+    
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
         // Remove from active connections
