@@ -1,4 +1,4 @@
-const { getBrowser, createContext, createPage, navigate } = require('./Browser');
+const { getBrowser, createContext, createPage, navigate } = require('./browser');
 const cheerio = require('cheerio');
 const OpenAI = require('openai');
 require('dotenv').config();
