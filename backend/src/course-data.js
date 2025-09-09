@@ -3,9 +3,13 @@ const cheerio = require('cheerio');
 const { getBrowser, createContext, createPage, navigate } = require('./browser');
 
 // Function to search for all professors in a department at a university
-async function searchProfessorsByDepartment(universityNumber, departmentNumber, callback) {
+async function searchProfessorsByDepartment(universityNumber, departmentNumber, callback, progressCallback = null) {
     const searchURL = `https://www.ratemyprofessors.com/search/professors/${universityNumber}?q=*&did=${departmentNumber}`;
     console.log(`Fetching URL: ${searchURL}`);
+    
+    if (progressCallback) {
+        progressCallback('department-load', 10, 'Loading department page...');
+    }
 
     try {
         // Use browser pool
@@ -22,6 +26,10 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
         page = await createPage(context);
         
         await navigate(page, searchURL);
+        
+        if (progressCallback) {
+            progressCallback('department-load', 20, 'Analyzing department professors...');
+        }
         
         // Click "Load More" button until all professors are loaded
         // Try to get total number of professors from any header/indicator
@@ -49,6 +57,10 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
         let cachedButtonSelector = null; // Cache the working button selector
         
         console.log('\nStep 1: Starting to load all professors...');
+        
+        if (progressCallback) {
+            progressCallback('professor-load', 25, `Loading professors from department...`);
+        }
         
         // First, try to find and cache the working button selector
         const findButtonSelector = async () => {
@@ -100,6 +112,11 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
                 
                 if (attemptCount % 5 === 0) { // Log every 5 attempts to reduce spam
                     console.log(`Attempt ${attemptCount}: ${currentProfessorsCount} professors loaded`);
+                    
+                    if (progressCallback && totalProfessors > 0) {
+                        const progress = Math.min(25 + (currentProfessorsCount / totalProfessors) * 25, 50);
+                        progressCallback('professor-load', progress, `Loading professors: ${currentProfessorsCount}/${totalProfessors || '?'}`);
+                    }
                 }
                 
                 // Find and click the load more button (get fresh reference each time)
@@ -271,7 +288,7 @@ async function getNumCourseRatings(profURL, courseCode) {
 }
 
 // Main function to find professors with ratings for a specific course
-async function findProfessorsForCourse(courseName, departmentNumber, universityNumber, callback) {
+async function findProfessorsForCourse(courseName, departmentNumber, universityNumber, callback, progressCallback = null) {
     console.log(`\nSearching for professors with ratings for ${courseName} in department ${departmentNumber} at university ${universityNumber}`);
     console.time('Total Course Search Time');
     try {
@@ -287,6 +304,10 @@ async function findProfessorsForCourse(courseName, departmentNumber, universityN
             
             console.log(`\nStep 2: Checking ${professors.length} professors for course ${courseName}...`);
             
+            if (progressCallback) {
+                progressCallback('course-check', 55, `Found ${professors.length} professors, checking for course ratings...`);
+            }
+            
             const professorsWithCourse = [];
             let processedCount = 0;
             
@@ -298,6 +319,11 @@ async function findProfessorsForCourse(courseName, departmentNumber, universityN
                 try {
                     processedCount++;
                     console.log(`Processing ${processedCount}/${professors.length}: ${professor.name}`);
+                    
+                    if (progressCallback) {
+                        const progress = 55 + (processedCount / professors.length) * 40;
+                        progressCallback('course-check', progress, `Checking professor ${processedCount}/${professors.length}: ${professor.name.split(' ')[0]}...`);
+                    }
                     
                     const numRatings = await getNumCourseRatings(professor.profileURL, courseName);
                     
@@ -322,8 +348,13 @@ async function findProfessorsForCourse(courseName, departmentNumber, universityN
             console.log(`\nSearch complete! Found ${professorsWithCourse.length} professors with ratings for ${courseName}`);
             console.timeEnd('Check Course Ratings Time');
             console.timeEnd('Total Course Search Time');
+            
+            if (progressCallback) {
+                progressCallback('complete', 100, `Found ${professorsWithCourse.length} professors teaching ${courseName}!`);
+            }
+            
             callback(null, professorsWithCourse);
-        });
+        }, progressCallback);
         
     } catch (error) {
         console.error('Error in findProfessorsForCourse:', error.message);
