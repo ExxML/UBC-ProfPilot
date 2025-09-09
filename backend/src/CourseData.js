@@ -1,6 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { getBrowser, createContext, createPage, navigate } = require('./browser');
+const { getBrowser, createContext, createPage, navigate } = require('./Browser');
 
 // Function to search for all professors in a department at a university
 async function searchProfessorsByDepartment(universityNumber, departmentNumber, callback) {

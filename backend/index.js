@@ -1,7 +1,7 @@
-const professorURL = require('./src/prof-url')
-const professorData = require('./src/prof-data')
-const findProfessorsForCourse = require('./src/course-search')
-const { closeBrowser, getBrowserStats } = require('./src/browser')
+const professorURL = require('./src/ProfURL')
+const professorData = require('./src/ProfData')
+const findProfessorsForCourse = require('./src/CourseData')
+const { closeBrowser, getBrowserStats } = require('./src/Browser')
 const express = require('express');
 var app = express();
 const cors = require('cors');
