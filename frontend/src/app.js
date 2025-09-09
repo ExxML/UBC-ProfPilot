@@ -22,9 +22,9 @@ function App() {
               </span>
             </div>
             <div className="flex items-center">
-              <img src={UBCIcon} alt="UBC" className="h-20 w-50" style={{marginLeft: 0}} />
+              <img src={UBCIcon} alt="UBC" className="h-20 w-50" style={{marginLeft: 3, borderRadius: 15}} />
               <img src={HandshakeIcon} alt="Handshake" className="h-14 w-14" />
-              <img src={RMPIcon} alt="RMP" className="h-20 w-20" style={{marginRight: 0}} />
+              <img src={RMPIcon} alt="RMP" className="h-20 w-20" style={{marginRight: 3, borderRadius: 15}} />
             </div>
           </div>
         </div>
@@ -82,7 +82,7 @@ function App() {
              <p className="mt-1" style={{marginBottom: "10px"}}>Data sourced from <a href="https://www.ratemyprofessors.com" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700 underline">RateMyProfessors</a></p>
            </div>
            <div className="text-center text-sm text-gray-500">
-             <p className="mt-1">This website is not affiliated with RateMyProfessors or the University of British Columbia</p>
+             <p className="mt-1">This site is not affiliated with RateMyProfessors or the University of British Columbia</p>
           </div>
         </div>
       </footer>

@@ -59,7 +59,7 @@ const CourseSearch = () => {
               value={formData.course_name}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="e.g., CPSC110, MATH100, ENGL110"
+              placeholder="Ex. CPSC110"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -91,16 +91,13 @@ const CourseSearch = () => {
           </div>
         </div>
 
-        {/* University Info */}
+        {/* Course Search Info */}
         <div className="bg-gray-50 p-4 rounded-md">
-          <p className="text-sm text-gray-600">
-            <span className="font-medium">University:</span> {UNIVERSITY_CONFIG.name} ({UNIVERSITY_CONFIG.shortName})
+          <p className="text-sm text-gray-900 mb-2">
+            <span className="text-xl font-medium">Course Search 🔎</span>
           </p>
-          <p className="text-sm text-gray-600">
-            <span className="font-medium">University Number:</span> {UNIVERSITY_CONFIG.number}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            Search is automatically limited to {UNIVERSITY_CONFIG.shortName} courses and professors
+          <p className="text-sm text-gray-800">
+            Search for any UBC course to get a UBCGrades summary and a list of all the professors who have taught the course!
           </p>
         </div>
 

@@ -59,7 +59,7 @@ const ProfessorSearch = () => {
               value={formData.fname}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Enter professor's first name"
+              placeholder="Ex. Gregor"
               required
             />
           </div>
@@ -74,19 +74,19 @@ const ProfessorSearch = () => {
               value={formData.lname}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Enter professor's last name"
+              placeholder="Ex. Kiczales"
               required
             />
           </div>
         </div>
 
-        {/* University Info */}
+        {/* Prof Search Info */}
         <div className="bg-gray-50 p-4 rounded-md">
-          <p className="text-sm text-gray-600">
-            <span className="font-medium">University:</span> {UNIVERSITY_CONFIG.name} ({UNIVERSITY_CONFIG.shortName})
+          <p className="text-sm text-gray-900 mb-2">
+            <span className="text-xl font-medium">Professor Search 🔎</span>
           </p>
-          <p className="text-xs text-gray-500 mt-1">
-            Search is automatically limited to {UNIVERSITY_CONFIG.shortName} professors
+          <p className="text-sm text-gray-800">
+            Search for any professor at UBC to get an AI summary of all their ratings from RateMyProfessors!
           </p>
         </div>
 
