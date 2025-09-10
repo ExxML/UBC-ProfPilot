@@ -13,8 +13,10 @@ const ProfessorSearch = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ percentage: 0, phase: 'idle', message: 'Ready to search' });
+  const [searchDurationMs, setSearchDurationMs] = useState(null);
   const socketRef = useRef(null);
   const sessionIdRef = useRef(null);
+  const startTimeRef = useRef(null);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -34,6 +36,8 @@ const ProfessorSearch = () => {
     // Listen for search completion
     socketRef.current.on('search-complete', (data) => {
       setResult(data);
+      const end = performance.now();
+      setSearchDurationMs(end - (startTimeRef.current || end));
       setLoading(false);
       setProgress({ percentage: 100, phase: 'complete', message: 'Search complete!' });
     });
@@ -66,6 +70,8 @@ const ProfessorSearch = () => {
     setError(null);
     setResult(null);
     setProgress({ percentage: 0, phase: 'url-search', message: 'Starting search...' });
+    startTimeRef.current = performance.now();
+    setSearchDurationMs(null);
 
     if (socketRef.current) {
       socketRef.current.emit('start-professor-search', {
@@ -86,6 +92,8 @@ const ProfessorSearch = () => {
         });
         setResult(response.data);
         setProgress({ percentage: 100, phase: 'complete', message: 'Search complete!' });
+        const end = performance.now();
+        setSearchDurationMs(end - (startTimeRef.current || end));
       } catch (err) {
         setError(err.response?.data?.error || err.message);
         setProgress({ percentage: 0, phase: 'error', message: 'Search failed' });
@@ -235,15 +243,6 @@ const ProfessorSearch = () => {
               </div>
             )}
 
-            {/* Ratings Count */}
-            {result.ratings && (
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 mb-2">
-                  Total Ratings: {result.ratings.length}
-                </h4>
-              </div>
-            )}
-
             {/* Profile Link */}
             <div className="pt-4 border-t border-gray-200">
               <a
@@ -258,6 +257,11 @@ const ProfessorSearch = () => {
                 </svg>
               </a>
             </div>
+          </div>
+          <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-xs text-gray-600">
+            {searchDurationMs !== null && result.ratings && (
+              <span>{result.ratings.length} rating(s) found in {(searchDurationMs / 1000).toFixed(2)} seconds</span>
+            )}
           </div>
         </div>
       )}

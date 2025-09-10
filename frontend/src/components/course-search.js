@@ -13,8 +13,10 @@ const CourseSearch = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ percentage: 0, phase: 'idle', message: 'Ready to search' });
+  const [searchDurationMs, setSearchDurationMs] = useState(null);
   const socketRef = useRef(null);
   const sessionIdRef = useRef(null);
+  const startTimeRef = useRef(null);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -34,6 +36,8 @@ const CourseSearch = () => {
     // Listen for course search completion
     socketRef.current.on('course-search-complete', (data) => {
       setResult(data);
+      const end = performance.now();
+      setSearchDurationMs(end - (startTimeRef.current || end));
       setLoading(false);
       setProgress({ percentage: 100, phase: 'complete', message: 'Course search complete!' });
     });
@@ -66,6 +70,8 @@ const CourseSearch = () => {
     setError(null);
     setResult(null);
     setProgress({ percentage: 0, phase: 'department-load', message: 'Starting course search...' });
+    startTimeRef.current = performance.now();
+    setSearchDurationMs(null);
 
     if (socketRef.current) {
       socketRef.current.emit('start-course-search', {
@@ -86,6 +92,8 @@ const CourseSearch = () => {
         });
         setResult(response.data);
         setProgress({ percentage: 100, phase: 'complete', message: 'Course search complete!' });
+        const end = performance.now();
+        setSearchDurationMs(end - (startTimeRef.current || end));
       } catch (err) {
         setError(err.response?.data?.error || err.message);
         setProgress({ percentage: 0, phase: 'error', message: 'Course search failed' });
@@ -266,6 +274,11 @@ const CourseSearch = () => {
                   ))}
                 </div>
               </div>
+            )}
+          </div>
+          <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-xs text-gray-600">
+            {searchDurationMs !== null && result.professors && (
+              <span>{result.professors.length} professor(s) found in {(searchDurationMs / 1000).toFixed(2)} seconds</span>
             )}
           </div>
         </div>
