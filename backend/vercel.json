@@ -1,16 +1,43 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
   "functions": {
-    "api/*.js": {
+    "api/professor.js": {
       "runtime": "nodejs18.x",
-      "memory": 1024,
-      "maxDuration": 30
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "api/course.js": {
+      "runtime": "nodejs18.x", 
+      "maxDuration": 30,
+      "memory": 1024
     }
   },
   "routes": [
-    { "src": "/professor", "dest": "/api/professor" },
-    { "src": "/course", "dest": "/api/course" }
-  ]
+    {
+      "src": "/api/professor",
+      "dest": "/api/professor.js"
+    },
+    {
+      "src": "/api/course", 
+      "dest": "/api/course.js"
+    },
+    {
+      "src": "/professor",
+      "dest": "/api/professor.js"
+    },
+    {
+      "src": "/course", 
+      "dest": "/api/course.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "PLAYWRIGHT_BROWSERS_PATH": "/tmp/.cache/ms-playwright"
+  }
 }
-
-
