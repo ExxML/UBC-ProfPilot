@@ -162,14 +162,12 @@ async function getProfData(profURL, callback, progressCallback = null) {
                 // Quick count of current ratings
                 currentRatingsCount = await page.$$eval('[class*="Rating-"], [class*="RatingsList"] > div, [class*="Comments"] > div', elements => elements.length);
                 
-                if (attemptCount % 5 === 0) { // Log every 5 attempts to reduce spam
-                    const loadedCount = Math.floor(currentRatingsCount / 4);
-                    console.log(`Attempt ${attemptCount}: ${loadedCount} ratings loaded`);  // divide by 4 because each rating has 3 empty elements (for some reason?)
-                    
-                    if (progressCallback && totalRatings > 0) {
-                        const progress = Math.min(45 + (loadedCount / totalRatings) * 35, 80);
-                        progressCallback('ratings-load', progress, `Loading ratings: ${loadedCount}/${totalRatings}`);
-                    }
+                const loadedCount = Math.floor(currentRatingsCount / 4);
+                console.log(`Attempt ${attemptCount}: ${loadedCount} ratings loaded`);  // divide by 4 because each rating has 3 empty elements (for some reason?)
+                
+                if (progressCallback && totalRatings > 0) {
+                    const progress = Math.min(45 + (loadedCount / totalRatings) * 35, 80);
+                    progressCallback('ratings-load', progress, `Loading ratings: ${loadedCount}/${totalRatings}`);
                 }
                 
                 // Find and click the load more button (get fresh reference each time)

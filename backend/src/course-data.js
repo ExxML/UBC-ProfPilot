@@ -110,13 +110,11 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
                 // Quick count of current professors
                 currentProfessorsCount = await page.$$eval("a.TeacherCard__StyledTeacherCard-syjs0d-0", elements => elements.length);
                 
-                if (attemptCount % 5 === 0) { // Log every 5 attempts to reduce spam
-                    console.log(`Attempt ${attemptCount}: ${currentProfessorsCount} professors loaded`);
-                    
-                    if (progressCallback && totalProfessors > 0) {
-                        const progress = Math.min(25 + (currentProfessorsCount / totalProfessors) * 25, 50);
-                        progressCallback('professor-load', progress, `Loading professors: ${currentProfessorsCount}/${totalProfessors || '?'}`);
-                    }
+                console.log(`Attempt ${attemptCount}: ${currentProfessorsCount} professors loaded`);
+                
+                if (progressCallback && totalProfessors > 0) {
+                    const progress = Math.min(25 + (currentProfessorsCount / totalProfessors) * 25, 50);
+                    progressCallback('professor-load', progress, `Loading professors: ${currentProfessorsCount}/${totalProfessors || '?'}`);
                 }
                 
                 // Find and click the load more button (get fresh reference each time)
@@ -322,7 +320,7 @@ async function findProfessorsForCourse(courseName, departmentNumber, universityN
                     
                     if (progressCallback) {
                         const progress = 55 + (processedCount / professors.length) * 40;
-                        progressCallback('course-check', progress, `Checking professor ${processedCount}/${professors.length}: ${professor.name.split(' ')[0]}...`);
+                        progressCallback('course-check', progress, `Checking professor ${processedCount}/${professors.length}: ${professor.firstName} ${professor.lastName}...`);
                     }
                     
                     const numRatings = await getNumCourseRatings(professor.profileURL, courseName);
