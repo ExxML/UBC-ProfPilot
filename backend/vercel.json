@@ -2,12 +2,10 @@
   "version": 2,
   "functions": {
     "api/professor.js": {
-      "runtime": "nodejs18.x",
       "maxDuration": 30,
       "memory": 1024
     },
     "api/course.js": {
-      "runtime": "nodejs18.x", 
       "maxDuration": 30,
       "memory": 1024
     }
