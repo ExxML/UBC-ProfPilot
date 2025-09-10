@@ -1,14 +1,13 @@
 {
   "name": "ubc-profpilot-backend",
   "version": "1.0",
-  "description": "UBC ProfPilot Backend API for Vercel",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "vercel-build": "npx playwright install webkit",
     "postinstall": "npx playwright install webkit"
   },
-  "keywords": ["ubc", "professor", "ratings", "api"],
+  "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -20,8 +19,5 @@
     "openai": "4.104.0",
     "playwright": "1.54.2",
     "socket.io": "^4.8.1"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }
