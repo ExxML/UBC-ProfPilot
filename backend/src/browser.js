@@ -5,8 +5,8 @@ const os = require('os');
 // Config
 const CONFIG = {
   MAX_BROWSERS: parseInt(process.env.MAX_BROWSERS) || 1,  // Single browser instance
-  MAX_CONTEXTS_PER_BROWSER: parseInt(process.env.MAX_CONTEXTS_PER_BROWSER) || 3,
-  MAX_CONTEXT_POOL_SIZE: parseInt(process.env.MAX_CONTEXT_POOL_SIZE) || 2,  // Context pool for reuse
+  MAX_CONTEXTS_PER_BROWSER: parseInt(process.env.MAX_CONTEXTS_PER_BROWSER) || 2,
+  MAX_CONTEXT_POOL_SIZE: parseInt(process.env.MAX_CONTEXT_POOL_SIZE) || 1,  // Context pool for reuse
   BROWSER_TIMEOUT: parseInt(process.env.BROWSER_TIMEOUT) || 20000,
   PAGE_TIMEOUT: parseInt(process.env.PAGE_TIMEOUT) || 20000,
   NAVIGATION_TIMEOUT: parseInt(process.env.NAVIGATION_TIMEOUT) || 20000,
