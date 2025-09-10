@@ -199,13 +199,13 @@ const ProfessorSearch = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Name</h4>
-                <p className="text-lg font-semibold text-gray-900">
+                <p className="text-lg font-semibold text-gray-900 capitalize">
                   {result.first_name} {result.last_name}
                 </p>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">University</h4>
-                <p className="text-gray-900">{result.university}</p>
+                <p className="text-gray-900 capitalize">{result.university}</p>
               </div>
             </div>
 
