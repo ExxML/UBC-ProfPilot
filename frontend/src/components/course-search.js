@@ -69,7 +69,7 @@ const CourseSearch = () => {
     setLoading(true);
     setError(null);
     setResult(null);
-    setProgress({ percentage: 0, phase: 'department-load', message: 'Starting course search...' });
+    setProgress({ percentage: 0, phase: 'department-load', message: 'Initializing API (may take ~1 minute)...' });
     startTimeRef.current = performance.now();
     setSearchDurationMs(null);
 

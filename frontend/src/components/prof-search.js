@@ -129,7 +129,7 @@ const ProfessorSearch = () => {
     setLoading(true);
     setError(null);
     setResult(null);
-    setProgress({ percentage: 0, phase: 'url-search', message: 'Starting search...' });
+    setProgress({ percentage: 0, phase: 'url-search', message: 'Initializing API (may take ~1 minute)...' });
     startTimeRef.current = performance.now();
     setSearchDurationMs(null);
 
