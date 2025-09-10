@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ProfessorSearch from './components/prof-search';
 import CourseSearch from './components/course-search';
 import RMPIcon from './assets/RMP_Icon.jpg';
-import HandshakeIcon from './assets/Handshake_Icon.png';
+import XIcon from './assets/X_Icon.png';
 import UBCIcon from './assets/UBC_Icon.png';
 
 function App() {
@@ -22,9 +22,9 @@ function App() {
               </span>
             </div>
             <div className="flex items-center">
-              <img src={UBCIcon} alt="UBC" className="h-20 w-50" style={{marginLeft: 3, borderRadius: 15}} />
-              <img src={HandshakeIcon} alt="Handshake" className="h-14 w-14" />
-              <img src={RMPIcon} alt="RMP" className="h-20 w-20" style={{marginRight: 3, borderRadius: 15}} />
+              <img src={UBCIcon} alt="UBC" className="h-20 w-50" style={{marginRight: 7, borderRadius: 15}} />
+              <img src={XIcon} alt="X" className="h-6 w-6" style={{borderRadius: 20}} />
+              <img src={RMPIcon} alt="RMP" className="h-20 w-20" style={{marginLeft: 7, borderRadius: 15}} />
             </div>
           </div>
         </div>
