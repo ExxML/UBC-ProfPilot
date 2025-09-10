@@ -20,7 +20,7 @@ const CourseSearch = () => {
 
   // Initialize WebSocket connection
   useEffect(() => {
-    const backendUrl = API_BACKEND_URL || 'http://localhost:3000';
+    const backendUrl = API_BACKEND_URL || 'http://localhost:3001';
     socketRef.current = io(backendUrl);
     sessionIdRef.current = Date.now().toString();
 

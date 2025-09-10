@@ -8,7 +8,7 @@ const { Server } = require('socket.io');
 var app = express();
 const cors = require('cors');
 
-app.use(cors({origin: process.env.FRONTEND_URL || 'http://localhost:3001'}));
+app.use(cors({origin: process.env.FRONTEND_URL || 'http://localhost:3000'}));
 
 const server = createServer(app);
 const io = new Server(server, {
@@ -216,7 +216,7 @@ app.get('/course', function (req, res) {
     });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
     console.log(`Server running on ${PORT}`);
 });

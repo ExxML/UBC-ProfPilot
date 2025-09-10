@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3000';
+export const API_BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
 // University Configuration
 export const UNIVERSITY_CONFIG = {
