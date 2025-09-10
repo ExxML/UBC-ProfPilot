@@ -4,6 +4,66 @@ import { io } from 'socket.io-client';
 import { API_BACKEND_URL, UNIVERSITY_CONFIG } from '../config.js';
 import CircularProgress from './circular-progress.js';
 
+// Utility function to parse AI summary with formatting
+const parseAISummary = (text) => {
+  if (!text) return null;
+  
+  // Normalize line breaks: handle CRLF, CR, literal "\n" sequences, and real newlines
+  const normalized = String(text)
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\\n/g, '\n');
+  
+  // Split by normalized newlines
+  const lines = normalized.split('\n');
+  
+  return lines.map((line, lineIndex) => {
+    if (!line.trim()) {
+      // Empty line - render as line break
+      return <br key={lineIndex} />;
+    }
+    
+    // Process bold formatting within each line
+    const parts = [];
+    let currentText = line;
+    let partIndex = 0;
+    
+    // Find all bold patterns (**text**)
+    const boldPattern = /\*\*(.*?)\*\*/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = boldPattern.exec(currentText)) !== null) {
+      // Add text before the bold part
+      if (match.index > lastIndex) {
+        const beforeText = currentText.slice(lastIndex, match.index);
+        if (beforeText) {
+          parts.push(<span key={`${lineIndex}-${partIndex++}`}>{beforeText}</span>);
+        }
+      }
+      
+      // Add the bold part
+      parts.push(<strong key={`${lineIndex}-${partIndex++}`}>{match[1]}</strong>);
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text after last bold part
+    if (lastIndex < currentText.length) {
+      const remainingText = currentText.slice(lastIndex);
+      if (remainingText) {
+        parts.push(<span key={`${lineIndex}-${partIndex++}`}>{remainingText}</span>);
+      }
+    }
+    
+    // If no bold formatting was found, just return the line as is
+    if (parts.length === 0) {
+      parts.push(<span key={`${lineIndex}-0`}>{line}</span>);
+    }
+    
+    return <div key={lineIndex} className="mb-1">{parts}</div>;
+  });
+};
+
 const ProfessorSearch = () => {
   const [formData, setFormData] = useState({
     fname: '',
@@ -238,7 +298,7 @@ const ProfessorSearch = () => {
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-2">AI Summary</h4>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-700">{result.summary}</p>
+                  <div className="text-gray-700">{parseAISummary(result.summary)}</div>
                 </div>
               </div>
             )}
