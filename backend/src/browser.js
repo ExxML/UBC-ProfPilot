@@ -10,7 +10,7 @@ const CONFIG = {
   BROWSER_TIMEOUT: parseInt(process.env.BROWSER_TIMEOUT) || 20000,
   PAGE_TIMEOUT: parseInt(process.env.PAGE_TIMEOUT) || 20000,
   NAVIGATION_TIMEOUT: parseInt(process.env.NAVIGATION_TIMEOUT) || 20000,
-  IDLE_TIMEOUT: parseInt(process.env.IDLE_TIMEOUT) || 60000,
+  IDLE_TIMEOUT: parseInt(process.env.IDLE_TIMEOUT) || 300000,
   CONTEXT_IDLE_TIMEOUT: parseInt(process.env.CONTEXT_IDLE_TIMEOUT) || 10000,
   MEMORY_PRESSURE_THRESHOLD: parseFloat(process.env.MEMORY_PRESSURE_THRESHOLD) || 0.6,
   GC_INTERVAL: parseInt(process.env.GC_INTERVAL) || 30000,  // Force GC every 30s
