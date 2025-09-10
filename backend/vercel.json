@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs18.x",
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
+  "routes": [
+    { "src": "/professor", "dest": "/api/professor" },
+    { "src": "/course", "dest": "/api/course" }
+  ]
+}
+
+
