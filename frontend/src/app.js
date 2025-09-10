@@ -4,6 +4,7 @@ import CourseSearch from './components/course-search';
 import RMPIcon from './assets/RMP_Icon.jpg';
 import XIcon from './assets/X_Icon.png';
 import UBCIcon from './assets/UBC_Icon.png';
+import ProfPilotIcon from './assets/ProfPilot_Icon.png';
 
 function App() {
   const [activeTab, setActiveTab] = useState('professor');
@@ -16,6 +17,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
+              <img src={ProfPilotIcon} alt="ProfPilot" className="h-9 w-9 mr-2" />
               <h1 className="text-3xl font-bold">UBC ProfPilot</h1>
               <span className="ml-3 text-sm text-gray-700 bg-white/70 px-2 py-1 rounded-full">
                 RateMyProfessors Scraper & Summarizer
