@@ -8,8 +8,7 @@ const { Server } = require('socket.io');
 var app = express();
 const cors = require('cors');
 
-// app.use(cors({origin: "https://frontend.com"}));
-app.use(cors());
+app.use(cors({origin: process.env.FRONTEND_URL}));
 
 const server = createServer(app);
 const io = new Server(server, {
@@ -166,9 +165,6 @@ app.get('/professor', function (req, res) {
             });
         });
     });
-    
-
-
 });
 
 app.get('/course', function (req, res) {

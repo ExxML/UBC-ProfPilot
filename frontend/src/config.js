@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BACKEND_URL = 'https://ubc-profpilot-backend.onrender.com';
+export const API_BACKEND_URL = process.env.API_BACKEND_URL || 'http://localhost:3000';
 
 // University Configuration
 export const UNIVERSITY_CONFIG = {
