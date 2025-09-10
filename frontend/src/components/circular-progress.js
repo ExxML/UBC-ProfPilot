@@ -118,12 +118,14 @@ const CircularProgress = ({
             className={`w-2 h-2 rounded-full transition-all duration-300 ${
               getPhaseOrder(phase) > index 
                 ? 'scale-110' 
-                : getPhaseOrder(phase) === index 
+                // Always animate the first phase
+                : getPhaseOrder(phase) === index || index === 0
                 ? 'scale-125 animate-pulse' 
                 : 'scale-75'
             }`}
             style={{
-              backgroundColor: getPhaseOrder(phase) >= index ? (getPhaseOrder(phase) === index ? config.color : phaseData.color) : '#e5e7eb'
+              // Always light up the first phase
+              backgroundColor: (getPhaseOrder(phase) >= index || index === 0) ? (getPhaseOrder(phase) === index ? config.color : phaseData.color) : '#e5e7eb'
             }}
           />
         ))}
