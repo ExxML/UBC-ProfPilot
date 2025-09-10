@@ -217,7 +217,11 @@ const CourseSearch = () => {
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Department</h4>
-                <p className="text-gray-900">{formData.department_name}</p>
+                <p className="text-gray-900">
+                  {Object.keys(DEPARTMENT_MAPPINGS).find(name => 
+                    DEPARTMENT_MAPPINGS[name] === result.department_number
+                  ) || result.department_number}
+                </p>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Professors Found</h4>
