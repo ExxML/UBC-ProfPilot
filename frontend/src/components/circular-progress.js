@@ -6,7 +6,8 @@ const CircularProgress = ({
   strokeWidth = 8, 
   message = 'Loading...', 
   phase = 'idle',
-  animate = true 
+  animate = true,
+  searchType = ''
 }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -109,21 +110,9 @@ const CircularProgress = ({
         </div>
       </div>
 
-      {/* Progress bar (linear backup) */}
-      <div className="w-full max-w-xs bg-gray-200 rounded-full h-2 overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-500 ease-out"
-          style={{
-            width: `${percentage}%`,
-            backgroundColor: config.color,
-            boxShadow: '0 0 10px rgba(59, 130, 246, 0.3)'
-          }}
-        />
-      </div>
-
       {/* Phase indicators */}
       <div className="flex space-x-2 mt-4">
-        {Object.entries(phaseConfig).slice(1, -1).map(([phaseKey, phaseData], index) => (
+        {Object.entries(phaseConfig).slice(1, searchType === 'course' ? 4 : searchType === 'professor' ? 6 : 0).map(([phaseKey, phaseData], index) => (
           <div
             key={phaseKey}
             className={`w-2 h-2 rounded-full transition-all duration-300 ${
@@ -134,7 +123,7 @@ const CircularProgress = ({
                 : 'scale-75'
             }`}
             style={{
-              backgroundColor: getPhaseOrder(phase) >= index ? phaseData.color : '#e5e7eb'
+              backgroundColor: getPhaseOrder(phase) >= index ? (getPhaseOrder(phase) === index ? config.color : phaseData.color) : '#e5e7eb'
             }}
           />
         ))}

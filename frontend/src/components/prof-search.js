@@ -167,6 +167,7 @@ const ProfessorSearch = () => {
               size={140}
               strokeWidth={10}
               animate={true}
+              searchType="professor"
             />
           </div>
         </div>
