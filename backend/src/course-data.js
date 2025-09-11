@@ -320,7 +320,7 @@ async function findProfessorsForCourse(courseName, departmentNumber, universityN
                     
                     if (progressCallback) {
                         const progress = 55 + (processedCount / professors.length) * 40;
-                        progressCallback('course-check', progress, `Checking professor ${processedCount}/${professors.length}: ${professor.firstName} ${professor.lastName}...`);
+                        progressCallback('course-check', progress, `Checking professor ${processedCount}/${professors.length}: ${professor.lastName} ${professor.firstName}...`);
                     }
                     
                     const numRatings = await getNumCourseRatings(professor.profileURL, courseName);
