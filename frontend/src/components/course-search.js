@@ -159,7 +159,7 @@ const CourseSearch = () => {
             <span className="text-xl font-medium">Course Search 🔎</span>
           </p>
           <p className="text-sm text-gray-800">
-            Search for any UBC course to get a UBCGrades summary and a list of all the professors who have taught the course!
+            Search for any UBC course to get a list of all the professors who have taught the course!
           </p>
         </div>
 
