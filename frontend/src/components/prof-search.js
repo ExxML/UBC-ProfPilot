@@ -289,7 +289,7 @@ const ProfessorSearch = () => {
               </div>
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h4 className="text-sm font-medium text-blue-800">Would Take Again</h4>
-                <p className="text-2xl font-bold text-blue-600">{result.would_take_again}</p>  // Percent symbol included
+                <p className="text-2xl font-bold text-blue-600">{result.would_take_again}</p>
               </div>
             </div>
 
