@@ -21,38 +21,58 @@ const CourseSearch = () => {
   // Initialize WebSocket connection
   useEffect(() => {
     const backendUrl = API_BACKEND_URL || 'http://localhost:3001';
-    socketRef.current = io(backendUrl);
+    socketRef.current = io(backendUrl, {
+      // Add connection options to prevent memory leaks
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 1000,
+      timeout: 20000,
+      forceNew: false, // Reuse connections when possible
+    });
     sessionIdRef.current = Date.now().toString();
 
-    // Listen for course search progress updates
-    socketRef.current.on('course-search-progress', (data) => {
+    const socket = socketRef.current;
+
+    // Store event handlers for proper cleanup
+    const handleProgress = (data) => {
       setProgress({
         percentage: data.percentage,
         phase: data.phase,
         message: data.message
       });
-    });
+    };
 
-    // Listen for course search completion
-    socketRef.current.on('course-search-complete', (data) => {
+    const handleComplete = (data) => {
       setResult(data);
       const end = performance.now();
       setSearchDurationMs(end - (startTimeRef.current || end));
       setLoading(false);
       setProgress({ percentage: 100, phase: 'complete', message: 'Course search complete!' });
-    });
+    };
 
-    // Listen for course search errors
-    socketRef.current.on('course-search-error', (data) => {
+    const handleError = (data) => {
       setError(data.error);
       setLoading(false);
       setProgress({ percentage: 0, phase: 'error', message: 'Course search failed' });
-    });
+    };
+
+    // Listen for events
+    socket.on('course-search-progress', handleProgress);
+    socket.on('course-search-complete', handleComplete);
+    socket.on('course-search-error', handleError);
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
+      // Properly cleanup all event listeners
+      if (socket) {
+        socket.off('course-search-progress', handleProgress);
+        socket.off('course-search-complete', handleComplete);
+        socket.off('course-search-error', handleError);
+        socket.disconnect();
       }
+      // Clear refs
+      socketRef.current = null;
+      startTimeRef.current = null;
     };
   }, []);
 
@@ -70,6 +90,11 @@ const CourseSearch = () => {
     setError(null);
     setResult(null);
     setProgress({ percentage: 0, phase: 'department-load', message: 'Initializing API (may take ~1 minute)...' });
+    
+    // Clear previous timer reference to prevent memory leaks
+    if (startTimeRef.current) {
+      startTimeRef.current = null;
+    }
     startTimeRef.current = performance.now();
     setSearchDurationMs(null);
 
@@ -141,7 +166,7 @@ const CourseSearch = () => {
               required
             >
               <option value="">Select a department...</option>
-              {Object.keys(DEPARTMENT_MAPPINGS).sort().map((deptName) => (
+              {Array.from(Object.keys(DEPARTMENT_MAPPINGS)).sort().map((deptName) => (
                 <option key={deptName} value={deptName}>
                   {deptName}
                 </option>
@@ -227,7 +252,7 @@ const CourseSearch = () => {
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Department</h4>
                 <p className="text-gray-900">
-                  {Object.keys(DEPARTMENT_MAPPINGS).find(name => 
+                  {Array.from(Object.keys(DEPARTMENT_MAPPINGS)).find(name => 
                     DEPARTMENT_MAPPINGS[name] === result.department_number
                   ) || result.department_number}
                 </p>

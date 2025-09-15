@@ -18,8 +18,22 @@ const io = new Server(server, {
     }
 });
 
-// Store active connections by session ID
+// Store active connections by session ID with cleanup tracking
 const activeConnections = new Map();
+const connectionTimestamps = new Map();
+const CONNECTION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+// Cleanup stale connections every 5 minutes
+const cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [sessionId, timestamp] of connectionTimestamps.entries()) {
+        if (now - timestamp > CONNECTION_TIMEOUT) {
+            activeConnections.delete(sessionId);
+            connectionTimestamps.delete(sessionId);
+            console.log(`Cleaned up stale connection: ${sessionId}`);
+        }
+    }
+}, 5 * 60 * 1000);
 
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
@@ -27,6 +41,7 @@ io.on('connection', (socket) => {
     socket.on('start-professor-search', (data) => {
         const { fname, lname, university, sessionId } = data;
         activeConnections.set(sessionId, socket.id);
+        connectionTimestamps.set(sessionId, Date.now());
         
         // Emit progress updates
         const emitProgress = (phase, percentage, message) => {
@@ -74,6 +89,7 @@ io.on('connection', (socket) => {
     socket.on('start-course-search', (data) => {
         const { course_name, department_number, university_number, sessionId } = data;
         activeConnections.set(sessionId, socket.id);
+        connectionTimestamps.set(sessionId, Date.now());
         
         // Emit progress updates
         const emitProgress = (phase, percentage, message) => {
@@ -111,10 +127,11 @@ io.on('connection', (socket) => {
     
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
-        // Remove from active connections
+        // Remove from active connections and timestamps
         for (let [sessionId, socketId] of activeConnections.entries()) {
             if (socketId === socket.id) {
                 activeConnections.delete(sessionId);
+                connectionTimestamps.delete(sessionId);
                 break;
             }
         }
@@ -225,6 +242,11 @@ server.listen(PORT, () => {
 const gracefulShutdown = async (signal) => {
     console.log(`\nReceived ${signal}. Starting graceful shutdown...`);
     
+    // Clear cleanup interval
+    if (cleanupInterval) {
+        clearInterval(cleanupInterval);
+    }
+    
     // Stop accepting new connections
     server.close(async (err) => {
         if (err) {
@@ -234,6 +256,10 @@ const gracefulShutdown = async (signal) => {
         }
         
         try {
+            // Clear connection tracking
+            activeConnections.clear();
+            connectionTimestamps.clear();
+            
             // Close all browser instances
             console.log('Closing browser instances...');
             await closeBrowser();

@@ -435,9 +435,18 @@ async function getProfData(profURL, callback, progressCallback = null) {
             status: null
         });
     } finally {
-        try {
-            if (context) await context.close();
-        } catch (_) {}
+        // Ensure proper context cleanup
+        if (context) {
+            try {
+                // Close all pages first
+                const pages = await context.pages();
+                await Promise.all(pages.map(page => page.close().catch(() => {})));
+                // Then close context
+                await context.close();
+            } catch (error) {
+                console.warn('Error during context cleanup in prof-data:', error.message);
+            }
+        }
     }
 }
 

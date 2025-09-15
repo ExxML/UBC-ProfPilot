@@ -24,12 +24,13 @@ class BrowserPool {
     this.contextCounts = new Map();
     this.lastUsed = new Map();
     this.contextPool = [];  // Pool of reusable contexts
-    this.contextLastUsed = new WeakMap();
+    this.contextLastUsed = new Map();  // Changed from WeakMap to regular Map for proper cleanup
     this.cleanupInterval = null;
     this.gcInterval = null;
     this.isShuttingDown = false;
     this.requestCache = new Map();  // Cache for repeated requests
     this.persistentBrowser = null;  // Single persistent browser
+    this.maxCacheSize = 50;  // Strict cache limit
     
     // Start optimization routines
     this.startCleanupRoutine();
@@ -78,7 +79,7 @@ class BrowserPool {
   }
 
   async createContext(browser) {
-    // Try to reuse context from pool first
+        // Try to reuse context from pool first
     if (this.contextPool.length > 0) {
       const context = this.contextPool.pop();
       try {
@@ -94,6 +95,8 @@ class BrowserPool {
       } catch (error) {
         // Context is dead, continue to create new one
         console.warn('Pooled context unhealthy, creating new:', error.message);
+        // Clean up dead context references
+        this.contextLastUsed.delete(context);
         // Try to properly close the unhealthy context
         try {
           await context.close();
@@ -164,7 +167,7 @@ class BrowserPool {
           return route.abort('blockedbyclient');
         }
         
-        // Cache simple GET requests
+        // Cache simple GET requests with size limit
         if (request.method() === 'GET' && type === 'document') {
           const cacheKey = url;
           if (this.requestCache.has(cacheKey)) {
@@ -183,7 +186,7 @@ class BrowserPool {
       }
     });
 
-    // Add response caching for repeated requests
+    // Add response caching for repeated requests with strict limits
     context.on('response', async (response) => {
       try {
         if (response.request().method() === 'GET' && 
@@ -192,10 +195,11 @@ class BrowserPool {
           const body = await response.text();
           if (body.length < 50000) {  // Only cache small responses
             this.requestCache.set(response.url(), body);
-            // Limit cache size
-            if (this.requestCache.size > 10) {
-              const firstKey = this.requestCache.keys().next().value;
-              this.requestCache.delete(firstKey);
+            // Enforce strict cache size limit
+            if (this.requestCache.size > this.maxCacheSize) {
+              // Remove oldest entries (FIFO)
+              const keysToRemove = Array.from(this.requestCache.keys()).slice(0, this.requestCache.size - this.maxCacheSize + 10);
+              keysToRemove.forEach(key => this.requestCache.delete(key));
             }
           }
         }
@@ -239,12 +243,17 @@ class BrowserPool {
         } catch (healthError) {
           // Context is no longer healthy, don't return to pool
           console.warn('Context unhealthy, not returning to pool:', healthError.message);
+          // Clean up from tracking
+          pool.contextLastUsed.delete(this);
         }
       } catch (error) {
         console.warn('Error preparing context for reuse:', error.message);
+        // Clean up from tracking on error
+        pool.contextLastUsed.delete(this);
       }
       
       // Actually close if can't reuse
+      pool.contextLastUsed.delete(this);
       return originalClose();
     };
 
@@ -453,7 +462,7 @@ class BrowserPool {
     
     const closePromises = [];
     
-    // Close all contexts in pool
+    // Close all contexts in pool with proper cleanup
     for (const context of this.contextPool) {
       closePromises.push(
         (async () => {
@@ -461,8 +470,11 @@ class BrowserPool {
             const pages = await context.pages();
             await Promise.all(pages.map(page => page.close().catch(() => {})));
             await context.close();
+            // Clean up tracking
+            this.contextLastUsed.delete(context);
           } catch (error) {
             console.warn('Error closing pooled context:', error.message);
+            this.contextLastUsed.delete(context);
           }
         })()
       );
@@ -493,6 +505,7 @@ class BrowserPool {
     this.contextCounts.clear();
     this.lastUsed.clear();
     this.contextPool.length = 0;
+    this.contextLastUsed.clear();  // Clear context tracking
     this.requestCache.clear();
     this.persistentBrowser = null;
     

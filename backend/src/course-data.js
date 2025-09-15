@@ -2,6 +2,28 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const { getBrowser, createContext, createPage, navigate } = require('./browser');
 
+// Create a reusable axios instance with connection pooling
+const axiosInstance = axios.create({
+    timeout: 15000,
+    maxRedirects: 3,
+    maxContentLength: 50000000,
+    maxBodyLength: 50000000,
+    httpAgent: new (require('http').Agent)({
+        keepAlive: true,
+        maxSockets: 5,
+        maxFreeSockets: 2,
+        timeout: 15000,
+        freeSocketTimeout: 30000
+    }),
+    httpsAgent: new (require('https').Agent)({
+        keepAlive: true,
+        maxSockets: 5,
+        maxFreeSockets: 2,
+        timeout: 15000,
+        freeSocketTimeout: 30000
+    })
+});
+
 // Function to search for all professors in a department at a university
 async function searchProfessorsByDepartment(universityNumber, departmentNumber, callback, progressCallback = null) {
     const searchURL = `https://www.ratemyprofessors.com/search/professors/${universityNumber}?q=*&did=${departmentNumber}`;
@@ -242,7 +264,18 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
         console.log(`Total professors found: ${professors.length}`);
         callback(null, professors);
         } finally {
-            try { if (context) await context.close(); } catch (_) {}
+            // Ensure proper context cleanup
+            if (context) {
+                try {
+                    // Close all pages first
+                    const pages = await context.pages();
+                    await Promise.all(pages.map(page => page.close().catch(() => {})));
+                    // Then close context
+                    await context.close();
+                } catch (error) {
+                    console.warn('Error during context cleanup in course-data:', error.message);
+                }
+            }
         }
         
     } catch (error) {
@@ -260,8 +293,8 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
 // Function to find the number of ratings a professor has for a specific course (scraped from page source)
 async function getNumCourseRatings(profURL, courseCode) {
     try {
-        // Fetch the page HTML
-        const { data: html } = await axios.get(profURL);
+        // Fetch the page HTML using the configured axios instance
+        const { data: html } = await axiosInstance.get(profURL);
 
         // Load HTML into cheerio
         const $ = cheerio.load(html);

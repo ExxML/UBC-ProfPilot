@@ -1,6 +1,29 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
+// Create a reusable axios instance with connection pooling and timeouts
+const axiosInstance = axios.create({
+    timeout: 10000,
+    maxRedirects: 3,
+    maxContentLength: 50000000, // 50MB limit
+    maxBodyLength: 50000000,
+    // Connection pooling settings
+    httpAgent: new (require('http').Agent)({
+        keepAlive: true,
+        maxSockets: 10,
+        maxFreeSockets: 5,
+        timeout: 10000,
+        freeSocketTimeout: 30000
+    }),
+    httpsAgent: new (require('https').Agent)({
+        keepAlive: true,
+        maxSockets: 10,
+        maxFreeSockets: 5,
+        timeout: 10000,
+        freeSocketTimeout: 30000
+    })
+});
+
 // Add headers to mimic a real browser request
 const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -26,9 +49,8 @@ function searchForProf(fname, lname, university, callback, progressCallback = nu
         progressCallback('url-search', 15, 'Contacting RateMyProfessors...');
     }
 
-    axios.get(searchURL, { 
-        headers: headers,
-        timeout: 10000 // 10 second timeout
+    axiosInstance.get(searchURL, { 
+        headers: headers
     }).then(function (response) { // callback function
         if (response.status === 200) {
             const html = response.data;
