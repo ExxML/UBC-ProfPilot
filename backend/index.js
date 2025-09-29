@@ -8,20 +8,23 @@ const { Server } = require('socket.io');
 var app = express();
 const cors = require('cors');
 
-app.use(cors({origin: process.env.FRONTEND_URL || 'http://localhost:3000'}));
+app.use(cors({origin: process.env.FRONTEND_URL}));
 
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+      origin: process.env.FRONTEND_URL,
+      methods: ["GET", "POST"]
     }
-});
+  });
 
 // Store active connections by session ID with cleanup tracking
 const activeConnections = new Map();
 const connectionTimestamps = new Map();
 const CONNECTION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+// Track connected clients for auto-shutdown
+const connectedClients = new Set();
 
 // Cleanup stale connections every 5 minutes
 const cleanupInterval = setInterval(() => {
@@ -37,6 +40,37 @@ const cleanupInterval = setInterval(() => {
 
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
+
+    // Track client connection
+    connectedClients.add(socket.id);
+
+    // Set up heartbeat monitoring for reliable disconnection detection
+    const HEARTBEAT_TIMEOUT = 35000; // 35 seconds (longer than Socket.IO's default 30s)
+    let heartbeatTimeout;
+
+    // Monitor connection heartbeat
+    const resetHeartbeatTimeout = () => {
+        if (heartbeatTimeout) {
+            clearTimeout(heartbeatTimeout);
+        }
+        heartbeatTimeout = setTimeout(() => {
+            console.log(`No heartbeat from client ${socket.id} for ${HEARTBEAT_TIMEOUT}ms, forcing disconnect`);
+            socket.disconnect(true); // Force disconnect
+        }, HEARTBEAT_TIMEOUT);
+    };
+
+    // Listen for heartbeat events
+    socket.conn.on('heartbeat', () => {
+        resetHeartbeatTimeout();
+    });
+
+    // Also listen for packet events (any activity)
+    socket.conn.on('packet', () => {
+        resetHeartbeatTimeout();
+    });
+
+    // Initial heartbeat timeout setup
+    resetHeartbeatTimeout();
     
     socket.on('start-professor-search', (data) => {
         const { fname, lname, university, sessionId } = data;
@@ -127,6 +161,15 @@ io.on('connection', (socket) => {
     
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
+
+        // Clear heartbeat timeout
+        if (heartbeatTimeout) {
+            clearTimeout(heartbeatTimeout);
+        }
+
+        // Remove from client tracking
+        connectedClients.delete(socket.id);
+
         // Remove from active connections and timestamps
         for (let [sessionId, socketId] of activeConnections.entries()) {
             if (socketId === socket.id) {
@@ -134,6 +177,12 @@ io.on('connection', (socket) => {
                 connectionTimestamps.delete(sessionId);
                 break;
             }
+        }
+
+        // Check if all clients have disconnected
+        if (connectedClients.size === 0) {
+            console.log('All clients disconnected. Shutting down server...');
+            shutdown();
         }
     });
 });
@@ -237,6 +286,43 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
     console.log(`Server running on ${PORT}`);
 });
+
+// Shutdown function for client disconnection
+const shutdown = async () => {
+    console.log('Initiating immediate shutdown due to client disconnection...');
+
+    try {
+        // Clear cleanup interval
+        if (cleanupInterval) {
+            clearInterval(cleanupInterval);
+        }
+
+        // Close all browser instances immediately
+        await closeBrowser();
+        console.log('Browser cleanup completed');
+
+        // Clear connection tracking
+        activeConnections.clear();
+        connectionTimestamps.clear();
+        connectedClients.clear();
+
+        // Force close the server
+        server.close(() => {
+            console.log('Server closed due to client disconnection');
+            process.exit(0);
+        });
+
+        // Force exit after a short timeout
+        setTimeout(() => {
+            console.log('Forcing process exit');
+            process.exit(0);
+        }, 2000);
+
+    } catch (error) {
+        console.error('Error during immediate shutdown:', error);
+        process.exit(1);
+    }
+};
 
 // Graceful shutdown handling
 const gracefulShutdown = async (signal) => {

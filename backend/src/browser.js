@@ -62,7 +62,7 @@ class BrowserPool {
       timeout: CONFIG.BROWSER_TIMEOUT,
       env: {
         ...process.env,
-        NODE_OPTIONS: '--max-old-space-size=256'
+        NODE_OPTIONS: '--max-old-space-size=255'
       }
     });
 
