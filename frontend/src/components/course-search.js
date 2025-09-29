@@ -17,6 +17,14 @@ const CourseSearch = () => {
   const socketRef = useRef(null);
   const sessionIdRef = useRef(null);
   const startTimeRef = useRef(null);
+  const timeoutRef = useRef(null);
+
+  // Timeout handler function (defined outside useEffect for proper scoping)
+  const handleTimeout = () => {
+    setError('Request timed out after 5 minutes. The backend may be experiencing issues.');
+    setLoading(false);
+    setProgress({ percentage: 0, phase: 'timeout', message: 'Request timed out' });
+  };
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -49,12 +57,24 @@ const CourseSearch = () => {
       setSearchDurationMs(end - (startTimeRef.current || end));
       setLoading(false);
       setProgress({ percentage: 100, phase: 'complete', message: 'Course search complete!' });
+
+      // Clear timeout timer
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
 
     const handleError = (data) => {
       setError(data.error);
       setLoading(false);
       setProgress({ percentage: 0, phase: 'error', message: 'Course search failed' });
+
+      // Clear timeout timer
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
 
     // Listen for events
@@ -73,6 +93,7 @@ const CourseSearch = () => {
       // Clear refs
       socketRef.current = null;
       startTimeRef.current = null;
+      timeoutRef.current = null;
     };
   }, []);
 
@@ -90,13 +111,20 @@ const CourseSearch = () => {
     setError(null);
     setResult(null);
     setProgress({ percentage: 0, phase: 'department-load', message: 'Initializing API (may take ~1 minute)...' });
-    
+
     // Clear previous timer reference to prevent memory leaks
     if (startTimeRef.current) {
       startTimeRef.current = null;
     }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     startTimeRef.current = performance.now();
     setSearchDurationMs(null);
+
+    // Set up 5-minute timeout (300,000ms)
+    timeoutRef.current = setTimeout(handleTimeout, 300000);
 
     if (socketRef.current) {
       socketRef.current.emit('start-course-search', {
@@ -119,9 +147,21 @@ const CourseSearch = () => {
         setProgress({ percentage: 100, phase: 'complete', message: 'Course search complete!' });
         const end = performance.now();
         setSearchDurationMs(end - (startTimeRef.current || end));
+
+        // Clear timeout timer
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
       } catch (err) {
         setError(err.response?.data?.error || err.message);
         setProgress({ percentage: 0, phase: 'error', message: 'Course search failed' });
+
+        // Clear timeout timer
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
       } finally {
         setLoading(false);
       }
