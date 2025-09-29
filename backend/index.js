@@ -14,10 +14,10 @@ app.use(cors({origin: frontendUrl || 'http://localhost:3000'}));
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
+        origin: "*",
+        methods: ["GET", "POST"]
     }
-  });
+});
 
 // Store active connections by session ID with cleanup tracking
 const activeConnections = new Map();
@@ -180,11 +180,8 @@ io.on('connection', (socket) => {
             }
         }
 
-        // Check if all clients have disconnected
-        if (connectedClients.size === 0) {
-            console.log('All clients disconnected. Shutting down server...');
-            shutdown();
-        }
+        // Report number of clients still connected
+        console.log(`Clients remaining: ${connectedClients.size}`);
     });
 });
 
@@ -288,46 +285,9 @@ server.listen(PORT, () => {
     console.log(`Server running on ${PORT}`);
 });
 
-// Shutdown function for client disconnection
-const shutdown = async () => {
-    console.log('Initiating immediate shutdown due to client disconnection...');
-
-    try {
-        // Clear cleanup interval
-        if (cleanupInterval) {
-            clearInterval(cleanupInterval);
-        }
-
-        // Close all browser instances immediately
-        await closeBrowser();
-        console.log('Browser cleanup completed');
-
-        // Clear connection tracking
-        activeConnections.clear();
-        connectionTimestamps.clear();
-        connectedClients.clear();
-
-        // Force close the server
-        server.close(() => {
-            console.log('Server closed due to client disconnection');
-            process.exit(0);
-        });
-
-        // Force exit after a short timeout
-        setTimeout(() => {
-            console.log('Forcing process exit');
-            process.exit(0);
-        }, 2000);
-
-    } catch (error) {
-        console.error('Error during immediate shutdown:', error);
-        process.exit(1);
-    }
-};
-
-// Graceful shutdown handling
-const gracefulShutdown = async (signal) => {
-    console.log(`\nReceived ${signal}. Starting graceful shutdown...`);
+// Shutdown handling
+const shutdown = async (signal) => {
+    console.log(`\nReceived ${signal}. Starting shutdown...`);
     
     // Clear cleanup interval
     if (cleanupInterval) {
@@ -352,32 +312,28 @@ const gracefulShutdown = async (signal) => {
             await closeBrowser();
             console.log('Browser cleanup completed');
             
-            console.log('Graceful shutdown completed');
+            console.log('Shutdown completed');
             process.exit(0);
         } catch (error) {
-            console.error('Error during graceful shutdown:', error);
+            console.error('Error during shutdown:', error);
             process.exit(1);
         }
     });
     
-    // Force exit if graceful shutdown takes too long
+    // Force exit if shutdown takes too long
     setTimeout(() => {
-        console.error('Graceful shutdown timed out, forcing exit');
+        console.error('Shutdown timed out, forcing exit');
         process.exit(1);
     }, 10000);
 };
 
-// Handle graceful shutdown signals
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-
 // Handle uncaught exceptions and unhandled rejections
 process.on('uncaughtException', async (error) => {
     console.error('Uncaught Exception:', error);
-    await gracefulShutdown('uncaughtException');
+    await shutdown('uncaughtException');
 });
 
 process.on('unhandledRejection', async (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    await gracefulShutdown('unhandledRejection');
+    await shutdown('unhandledRejection');
 });

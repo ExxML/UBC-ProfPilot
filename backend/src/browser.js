@@ -603,9 +603,9 @@ function forceCleanup() {
   return browserPool.aggressiveCleanup();
 }
 
-// Graceful shutdown handlers
+// Shutdown handlers
 const shutdown = async (signal) => {
-  console.log(`Received ${signal}. Closing browsers gracefully...`);
+  console.log(`Received ${signal}. Closing browsers...`);
   try {
     await browserPool.closeAll();
     console.log('Browser cleanup completed');
