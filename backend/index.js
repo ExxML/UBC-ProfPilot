@@ -7,13 +7,14 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 var app = express();
 const cors = require('cors');
+const frontendUrl = process.env.FRONTEND_URL
 
-app.use(cors({origin: process.env.FRONTEND_URL}));
+app.use(cors({origin: frontendUrl || 'http://localhost:3000'}));
 
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL,
+      origin: frontendUrl || 'http://localhost:3000',
       methods: ["GET", "POST"]
     }
   });
