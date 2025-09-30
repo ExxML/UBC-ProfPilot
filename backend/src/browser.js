@@ -1,6 +1,5 @@
 // Playwright WebKit browser manager
 const { webkit } = require('playwright');
-const os = require('os');
 
 // Single persistent browser config
 const CONFIG = {
@@ -201,11 +200,6 @@ class BrowserPool {
     };
 
     return context;
-  }
-
-  getBrowserId(browser) {
-    if (browser === this.persistentBrowser) return 'persistent';
-    return null;
   }
 
   async preloadResources() {

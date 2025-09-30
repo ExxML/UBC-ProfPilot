@@ -69,7 +69,5 @@ function createAxiosInstance(preset = 'courseData') {
 
 module.exports = {
     createAxiosInstance,
-    AXIOS_PRESETS,
-    createAgentConfig,
-    COMMON_CONFIG
+    AXIOS_PRESETS
 };

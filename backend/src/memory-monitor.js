@@ -1,5 +1,4 @@
-// Memory monitoring utility for Step 1 operations
-const os = require('os');
+// Memory monitoring utility for course and prof search Step
 
 /**
  * Check if current memory usage exceeds the specified limit in MB
