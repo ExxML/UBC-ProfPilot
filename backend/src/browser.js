@@ -2,7 +2,7 @@
 const { webkit } = require('playwright');
 const os = require('os');
 
-// Config
+// Browser config
 const CONFIG = {
   MAX_BROWSERS: parseInt(process.env.MAX_BROWSERS) || 1,  // Single browser instance
   MAX_CONTEXTS_PER_BROWSER: parseInt(process.env.MAX_CONTEXTS_PER_BROWSER) || 2,
@@ -13,9 +13,7 @@ const CONFIG = {
   IDLE_TIMEOUT: parseInt(process.env.IDLE_TIMEOUT) || 300000,
   CONTEXT_IDLE_TIMEOUT: parseInt(process.env.CONTEXT_IDLE_TIMEOUT) || 10000,
   MEMORY_PRESSURE_THRESHOLD: parseFloat(process.env.MEMORY_PRESSURE_THRESHOLD) || 0.6,
-  GC_INTERVAL: parseInt(process.env.GC_INTERVAL) || 30000,  // Force GC every 30s
   PRELOAD_CONTEXTS: parseInt(process.env.PRELOAD_CONTEXTS) || 1,  // Pre-warm contexts
-  AGGRESSIVE_CLEANUP: process.env.AGGRESSIVE_CLEANUP !== 'false'  // Aggressive cleanup enabled
 };
 
 class BrowserPool {
@@ -24,7 +22,6 @@ class BrowserPool {
     this.contextPool = [];  // Pool of reusable contexts
     this.contextLastUsed = new Map();  // Changed from WeakMap to regular Map for proper cleanup
     this.cleanupInterval = null;
-    this.gcInterval = null;
     this.isShuttingDown = false;
     this.requestCache = new Map();  // Cache for repeated requests
     this.persistentBrowser = null;  // Single persistent browser
@@ -32,7 +29,6 @@ class BrowserPool {
     
     // Start optimization routines
     this.startCleanupRoutine();
-    this.startGarbageCollection();
     this.preloadResources();
   }
 
@@ -279,67 +275,6 @@ class BrowserPool {
     }
   }
 
-  startGarbageCollection() {
-    if (!CONFIG.AGGRESSIVE_CLEANUP) return;
-    
-    this.gcInterval = setInterval(() => {
-      try {
-        // Force garbage collection if available
-        if (typeof global.gc === 'function') {
-          global.gc();
-        }
-        
-        // Clear old cache entries
-        if (this.requestCache.size > 5) {
-          const entries = Array.from(this.requestCache.entries());
-          const toDelete = entries.slice(0, entries.length - 5);
-          toDelete.forEach(([key]) => this.requestCache.delete(key));
-        }
-        
-        // Monitor memory usage
-        const memUsage = process.memoryUsage();
-        const totalMem = os.totalmem();
-        const memRatio = memUsage.rss / totalMem;
-        
-        if (memRatio > CONFIG.MEMORY_PRESSURE_THRESHOLD) {
-          console.log(`High memory usage detected: ${(memRatio * 100).toFixed(1)}%, forcing cleanup`);
-          this.aggressiveCleanup();
-        }
-      } catch (error) {
-        console.warn('Error during garbage collection:', error.message);
-      }
-    }, CONFIG.GC_INTERVAL);
-  }
-
-  async aggressiveCleanup() {
-    try {
-      // Clear request cache
-      this.requestCache.clear();
-      
-      // Close excess contexts from pool
-      while (this.contextPool.length > 1) {
-        const context = this.contextPool.pop();
-        try {
-          const pages = await context.pages();
-          await Promise.all(pages.map(page => page.close().catch(() => {})));
-          await context.close();
-        } catch (error) {
-          // Context already closed
-        }
-      }
-      
-      // Force garbage collection
-      if (typeof global.gc === 'function') {
-        global.gc();
-        global.gc(); // Double GC for good measure
-      }
-      
-      console.log('Aggressive cleanup completed');
-    } catch (error) {
-      console.warn('Error during aggressive cleanup:', error.message);
-    }
-  }
-
   startCleanupRoutine() {
     this.cleanupInterval = setInterval(async () => {
       if (this.isShuttingDown) return;
@@ -389,7 +324,7 @@ class BrowserPool {
         if (this.persistentBrowser) {
           try {
             await this.persistentBrowser.version();
-            console.log('Persistent browser health check passed - keeping alive');
+            // Browser is healthy, do nothing
           } catch (error) {
             console.warn('Persistent browser unhealthy, recreating:', error.message);
             try {
@@ -404,13 +339,13 @@ class BrowserPool {
 
         // Memory pressure response
         if (isHighMemory) {
-          await this.aggressiveCleanup();
+          console.log(`High memory usage detected: ${(memRatio * 100).toFixed(1)}%`);
         }
 
       } catch (error) {
         console.error('Error in cleanup routine:', error.message);
       }
-    }, 30000); // Run cleanup every 30 seconds for more aggressive management
+    }, 60000); // Run cleanup every 60 seconds
   }
 
   async closeAll() {
@@ -420,11 +355,6 @@ class BrowserPool {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
-    }
-    
-    if (this.gcInterval) {
-      clearInterval(this.gcInterval);
-      this.gcInterval = null;
     }
     
     const closePromises = [];
@@ -551,9 +481,6 @@ function getBrowserStats() {
   return browserPool.getStats();
 }
 
-function forceCleanup() {
-  return browserPool.aggressiveCleanup();
-}
 
 // Shutdown handlers
 const shutdown = async (signal) => {
@@ -581,15 +508,12 @@ process.on('unhandledRejection', async (reason, promise) => {
   process.exit(1);
 });
 
-module.exports = { 
-  getBrowser, 
+module.exports = {
+  getBrowser,
   createContext,
   createPage,
   navigate,
-  closeBrowser, 
+  closeBrowser,
   getBrowserStats,
-  forceCleanup,
-  CONFIG 
+  CONFIG
 };
-
-
