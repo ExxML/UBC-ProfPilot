@@ -343,7 +343,6 @@ class BrowserPool {
         ]);
         this.persistentBrowser = null;
         this.lastUsed.delete('persistent');
-        console.log('Persistent browser closed successfully');
       } catch (error) {
         console.error('Error closing persistent browser:', error.message);
         // Clear the reference even if close failed
