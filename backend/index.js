@@ -1,7 +1,7 @@
 const professorURL = require('./src/prof-url')
 const professorData = require('./src/prof-data')
 const findProfessorsForCourse = require('./src/course-data')
-const { closeBrowser, closePersistentBrowser, getBrowserStats } = require('./src/browser')
+const { closeBrowser, closePersistentBrowser } = require('./src/browser')
 const express = require('express');
 const { createServer } = require('http');
 const { Server } = require('socket.io');

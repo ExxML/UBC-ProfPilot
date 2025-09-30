@@ -2,17 +2,12 @@
 const { webkit } = require('playwright');
 const os = require('os');
 
-// Browser config
+// Single persistent browser config
 const CONFIG = {
-  MAX_BROWSERS: 1,  // Single browser instance
-  MAX_CONTEXTS_PER_BROWSER: 2,
   MAX_CONTEXT_POOL_SIZE: 1,  // Context pool for reuse
   BROWSER_TIMEOUT: 180000,
   PAGE_TIMEOUT: 180000,
   NAVIGATION_TIMEOUT: 180000,
-  IDLE_TIMEOUT: 300000,
-  CONTEXT_IDLE_TIMEOUT: 10000,
-  MEMORY_PRESSURE_THRESHOLD: 0.6,
   PRELOAD_CONTEXTS: 1,  // Pre-warm a context
 };
 
@@ -281,23 +276,14 @@ class BrowserPool {
       
       try {
         const now = Date.now();
-        
-        // Enhanced memory pressure monitoring
-        let isHighMemory = false;
-        try {
-          const memUsage = process.memoryUsage();
-          const totalMem = os.totalmem();
-          const memRatio = memUsage.rss / totalMem;
-          isHighMemory = memRatio > CONFIG.MEMORY_PRESSURE_THRESHOLD;
-        } catch (_) {}
 
         // Clean up old contexts from pool
         const contextsToRemove = [];
         for (let i = 0; i < this.contextPool.length; i++) {
           const context = this.contextPool[i];
           const lastUsed = this.contextLastUsed.get(context) || 0;
-          const idleTime = isHighMemory ? CONFIG.CONTEXT_IDLE_TIMEOUT / 2 : CONFIG.CONTEXT_IDLE_TIMEOUT;
-          
+          const idleTime = 30000; // 30 seconds idle timeout for contexts
+
           if ((now - lastUsed) > idleTime) {
             contextsToRemove.push(i);
           }
@@ -335,11 +321,6 @@ class BrowserPool {
             this.persistentBrowser = null;
             this.lastUsed.delete('persistent');
           }
-        }
-
-        // Memory pressure response
-        if (isHighMemory) {
-          console.log(`High memory usage detected: ${(memRatio * 100).toFixed(1)}%`);
         }
 
       } catch (error) {
@@ -440,27 +421,6 @@ class BrowserPool {
       console.log('No persistent browser to close');
     }
   }
-
-  getStats() {
-    const memUsage = process.memoryUsage();
-    return {
-      totalBrowsers: (this.persistentBrowser ? 1 : 0),
-      totalContexts: 0,
-      pooledContexts: this.contextPool.length,
-      cacheSize: this.requestCache.size,
-      memoryUsage: {
-        rss: Math.round(memUsage.rss / 1024 / 1024), // MB
-        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
-        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024), // MB
-        external: Math.round(memUsage.external / 1024 / 1024) // MB
-      },
-      persistentBrowser: this.persistentBrowser ? {
-        lastUsed: this.lastUsed.get('persistent') || 0,
-        isConnected: !this.persistentBrowser.disconnected
-      } : null,
-      browsersInfo: []
-    };
-  }
 }
 
 // Global browser pool instance
@@ -524,10 +484,6 @@ async function closePersistentBrowser() {
   await browserPool.closePersistentBrowser();
 }
 
-function getBrowserStats() {
-  return browserPool.getStats();
-}
-
 module.exports = {
   getBrowser,
   createContext,
@@ -535,6 +491,5 @@ module.exports = {
   navigate,
   closeBrowser,
   closePersistentBrowser,
-  getBrowserStats,
   CONFIG
 };
