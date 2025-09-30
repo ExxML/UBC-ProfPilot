@@ -229,21 +229,6 @@ class BrowserPool {
       if (this.isShuttingDown) return;
       
       try {
-        // Remove old contexts (in reverse order to maintain indices)
-        for (let i = contextsToRemove.length - 1; i >= 0; i--) {
-          const index = contextsToRemove[i];
-          const context = this.contextPool[index];
-          try {
-            const pages = await context.pages();
-            await Promise.all(pages.map(page => page.close().catch(() => {})));
-            await context.close();
-            this.contextPool.splice(index, 1);
-          } catch (error) {
-            // Context already closed, just remove from pool
-            this.contextPool.splice(index, 1);
-          }
-        }
-
         // Perform health check on persistent browser
         if (this.persistentBrowser) {
           try {
