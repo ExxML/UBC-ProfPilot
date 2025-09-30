@@ -1,4 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+
+// Add pulsing glow animations
+const glowAnimations = Array.from({ length: 8 }, (_, index) => `
+@keyframes pulse-glow-${index} {
+  0% {
+    opacity: 0.02;
+  }
+  100% {
+    opacity: ${Math.max(0.15, 0.15 * Math.exp(-index * 0.4))};
+  }
+}
+`);
 
 const GLOW_PADDING = 30;
 const CircularProgress = ({
@@ -10,6 +22,25 @@ const CircularProgress = ({
   animate = true,
   searchType = ''
 }) => {
+  // Inject pulsing glow animations into document head
+  useEffect(() => {
+    const styleId = 'circular-progress-glow-animations';
+    const existingStyle = document.getElementById(styleId);
+
+    if (!existingStyle) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = glowAnimations.join('\n');
+      document.head.appendChild(style);
+    }
+
+    return () => {
+      const style = document.getElementById(styleId);
+      if (style && style.parentNode) {
+        style.parentNode.removeChild(style);
+      }
+    };
+  }, []);
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDasharray = circumference;
@@ -52,10 +83,10 @@ const CircularProgress = ({
             fill="none"
             className="opacity-20"
           />
-          {/* Multiple glow layers for neon effect */}
+          {/* Multiple glow layers for neon effect with pulsing animation */}
           {Array.from({ length: 8 }, (_, index) => {
-            const glowWidth = 8 - index;
-            const opacity = Math.max(0.05, 0.15 * Math.exp(-index * 0.4));
+            const glowWidth = 10 - index;
+            const baseOpacity = Math.max(0.05, 0.15 * Math.exp(-index * 0.4));
             return (
               <circle
                 key={`glow-${index}`}
@@ -71,7 +102,8 @@ const CircularProgress = ({
                 className="transition-all duration-500 ease-out"
                 style={{
                   stroke: config.color,
-                  opacity: opacity
+                  opacity: baseOpacity,
+                  animation: `pulse-glow-${index} 1s ease-in-out infinite alternate`
                 }}
               />
             );
