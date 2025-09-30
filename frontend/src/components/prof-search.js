@@ -208,7 +208,7 @@ const ProfessorSearch = () => {
     setLoading(true);
     setError(null);
     setResult(null);
-    setProgress({ percentage: 0, phase: 'url-search', message: 'Initializing API (1 min)... If >3 mins, reload the page...' });
+    setProgress({ percentage: 0, phase: 'url-search', message: 'Initializing API (~1 min)... If >3 mins, reload the page...' });
 
     // Clear previous timer references to prevent memory leaks
     if (startTimeRef.current) {
