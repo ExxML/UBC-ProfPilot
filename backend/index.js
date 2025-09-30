@@ -1,7 +1,7 @@
 const professorURL = require('./src/prof-url')
 const professorData = require('./src/prof-data')
 const findProfessorsForCourse = require('./src/course-data')
-const { closeBrowser, getBrowserStats } = require('./src/browser')
+const { closeBrowser, closePersistentBrowser, getBrowserStats } = require('./src/browser')
 const express = require('express');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
@@ -183,14 +183,14 @@ io.on('connection', (socket) => {
         // Report number of clients still connected
         console.log(`Clients remaining: ${connectedClients.size}`);
 
-        // Check if no clients are connected and close all browsers
+        // Check if no clients are connected and close persistent browser
         if (connectedClients.size === 0) {
-            console.log('No clients connected, closing browser(s)...');
+            console.log('No clients connected, closing persistent browser...');
             try {
-                await closeBrowser();
-                console.log('Browser(s) closed successfully');
+                await closePersistentBrowser();
+                console.log('Persistent browser closed successfully');
             } catch (error) {
-                console.error('Error closing browser(s):', error.message);
+                console.error('Error closing persistent browser:', error.message);
             }
         }
     });

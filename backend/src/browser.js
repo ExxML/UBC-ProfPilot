@@ -7,9 +7,9 @@ const CONFIG = {
   MAX_BROWSERS: 1,  // Single browser instance
   MAX_CONTEXTS_PER_BROWSER: 2,
   MAX_CONTEXT_POOL_SIZE: 1,  // Context pool for reuse
-  BROWSER_TIMEOUT: 20000,
-  PAGE_TIMEOUT: 20000,
-  NAVIGATION_TIMEOUT: 20000,
+  BROWSER_TIMEOUT: 60000,
+  PAGE_TIMEOUT: 60000,
+  NAVIGATION_TIMEOUT: 60000,
   IDLE_TIMEOUT: 300000,
   CONTEXT_IDLE_TIMEOUT: 10000,
   MEMORY_PRESSURE_THRESHOLD: 0.6,
@@ -416,6 +416,31 @@ class BrowserPool {
     console.log('All browsers and contexts closed successfully');
   }
 
+  async closePersistentBrowser() {
+    if (this.persistentBrowser) {
+      try {
+        console.log('Closing persistent browser...');
+        await Promise.race([
+          this.persistentBrowser.close(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Persistent browser close timeout')), 10000)
+          )
+        ]);
+        this.persistentBrowser = null;
+        this.lastUsed.delete('persistent');
+        console.log('Persistent browser closed successfully');
+      } catch (error) {
+        console.error('Error closing persistent browser:', error.message);
+        // Clear the reference even if close failed
+        this.persistentBrowser = null;
+        this.lastUsed.delete('persistent');
+        throw error;
+      }
+    } else {
+      console.log('No persistent browser to close');
+    }
+  }
+
   getStats() {
     const memUsage = process.memoryUsage();
     return {
@@ -495,6 +520,10 @@ async function closeBrowser() {
   await browserPool.closeAll();
 }
 
+async function closePersistentBrowser() {
+  await browserPool.closePersistentBrowser();
+}
+
 function getBrowserStats() {
   return browserPool.getStats();
 }
@@ -505,6 +534,7 @@ module.exports = {
   createPage,
   navigate,
   closeBrowser,
+  closePersistentBrowser,
   getBrowserStats,
   CONFIG
 };
