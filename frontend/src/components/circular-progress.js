@@ -146,7 +146,7 @@ const getPhaseTitle = (phase) => {
     'ai-summary': 'Generating Summary',
     'department-load': 'Loading Department',
     'professor-load': 'Finding Professors',
-    'course-check': 'Checking Course Ratings',
+    'course-check': 'Checking Course Professors',
     'complete': 'Complete!',
     'error': 'Error Occurred',
     'timeout': 'Request Timeout'
