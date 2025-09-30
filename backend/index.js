@@ -306,12 +306,22 @@ const shutdown = async (signal) => {
             // Clear connection tracking
             activeConnections.clear();
             connectionTimestamps.clear();
-            
-            // Close all browser instances
+
+            // Close all browser instances with timeout protection
             console.log('Closing browser instances...');
-            await closeBrowser();
-            console.log('Browser cleanup completed');
-            
+            try {
+                await Promise.race([
+                    closeBrowser(),
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Browser cleanup timeout')), 25000)
+                    )
+                ]);
+                console.log('Browser cleanup completed');
+            } catch (browserError) {
+                console.error('Browser cleanup failed or timed out:', browserError.message);
+                // Continue with shutdown even if browser cleanup fails
+            }
+
             console.log('Shutdown completed');
             process.exit(0);
         } catch (error) {
@@ -320,12 +330,16 @@ const shutdown = async (signal) => {
         }
     });
     
-    // Force exit if shutdown takes too long
+    // Force exit if shutdown takes too long (increased for browser cleanup)
     setTimeout(() => {
-        console.error('Shutdown timed out, forcing exit');
+        console.error('Shutdown timed out after 30 seconds, forcing exit');
         process.exit(1);
-    }, 10000);
+    }, 30000);
 };
+
+// Register signal handlers for graceful shutdown
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 // Handle uncaught exceptions and unhandled rejections
 process.on('uncaughtException', async (error) => {
