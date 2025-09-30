@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
     connectedClients.add(socket.id);
 
     // Set up heartbeat monitoring for reliable disconnection detection
-    const HEARTBEAT_TIMEOUT = 35000; // 35 seconds (longer than Socket.IO's default 30s)
+    const HEARTBEAT_TIMEOUT = 30000; // 30 seconds
     let heartbeatTimeout;
 
     // Monitor connection heartbeat
@@ -55,7 +55,7 @@ io.on('connection', (socket) => {
             clearTimeout(heartbeatTimeout);
         }
         heartbeatTimeout = setTimeout(() => {
-            console.log(`No heartbeat from client ${socket.id} for ${HEARTBEAT_TIMEOUT}ms, forcing disconnect`);
+            console.log(`No heartbeat from client ${socket.id} for ${HEARTBEAT_TIMEOUT}ms, forcing socket disconnect`);
             socket.disconnect(true); // Force disconnect
         }, HEARTBEAT_TIMEOUT);
     };
@@ -160,7 +160,7 @@ io.on('connection', (socket) => {
         }, emitProgress);
     });
     
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         console.log('Client disconnected:', socket.id);
 
         // Clear heartbeat timeout
@@ -182,6 +182,17 @@ io.on('connection', (socket) => {
 
         // Report number of clients still connected
         console.log(`Clients remaining: ${connectedClients.size}`);
+
+        // Check if no clients are connected and close all browsers
+        if (connectedClients.size === 0) {
+            console.log('No clients connected, closing browser(s)...');
+            try {
+                await closeBrowser();
+                console.log('Browser(s) closed successfully');
+            } catch (error) {
+                console.error('Error closing browser(s):', error.message);
+            }
+        }
     });
 });
 
