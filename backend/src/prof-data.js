@@ -1,6 +1,7 @@
 const { getBrowser, createContext, createPage, navigate } = require('./browser');
 const cheerio = require('cheerio');
 const OpenAI = require('openai');
+const { checkMemoryUsage } = require('./memory-monitor');
 require('dotenv').config();
 
 // Initialize OpenAI client
@@ -162,6 +163,13 @@ async function getProfData(profURL, callback, progressCallback = null) {
         
         while (loadMoreVisible && attemptCount < maxAttempts) {
             try {
+                // Check memory usage before loading more ratings (500 MB limit to leave error margin (512 MB max memory usage))
+                if (checkMemoryUsage(500)) {
+                    console.log('Memory limit reached during ratings loading. Skipping to Step 2 (AI summary).');
+                    loadMoreVisible = false;
+                    break;
+                }
+
                 // Quick count of current ratings
                 currentRatingsCount = await page.$$eval('[class*="Rating-"], [class*="RatingsList"] > div, [class*="Comments"] > div', elements => elements.length);
                 
