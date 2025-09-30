@@ -24,6 +24,7 @@ UBC ProfPilot is a web app designed to help students make informed decisions abo
 - **Web Scraping**: 
   - Playwright (WebKit)
   - Cheerio
+  - Axios
 - **API Integration**: OpenAI API
 - **Real-time Communication**: Socket.IO
 
