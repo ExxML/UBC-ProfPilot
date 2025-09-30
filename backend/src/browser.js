@@ -4,7 +4,7 @@ const os = require('os');
 
 // Single persistent browser config
 const CONFIG = {
-  MAX_CONTEXT_POOL_SIZE: 1,  // Context pool for reuse
+  MAX_CONTEXT_POOL_SIZE: 3,  // Context pool for reuse
   BROWSER_TIMEOUT: 180000,
   PAGE_TIMEOUT: 180000,
   NAVIGATION_TIMEOUT: 180000,
@@ -15,13 +15,10 @@ class BrowserPool {
   constructor() {
     this.lastUsed = new Map();
     this.contextPool = [];  // Pool of reusable contexts
-    this.contextLastUsed = new Map();  // Changed from WeakMap to regular Map for proper cleanup
     this.cleanupInterval = null;
     this.isShuttingDown = false;
-    this.requestCache = new Map();  // Cache for repeated requests
     this.persistentBrowser = null;  // Single persistent browser
-    this.maxCacheSize = 50;  // Strict cache limit
-    
+
     // Start optimization routines
     this.startCleanupRoutine();
     this.preloadResources();
@@ -79,13 +76,11 @@ class BrowserPool {
         const testPage = await context.newPage();
         await testPage.close();
         
-        this.contextLastUsed.set(context, Date.now());
         return this.wrapContextForReuse(context);
       } catch (error) {
         // Context is dead, continue to create new one
         console.warn('Pooled context unhealthy, creating new:', error.message);
         // Clean up dead context references
-        this.contextLastUsed.delete(context);
         // Try to properly close the unhealthy context
         try {
           await context.close();
@@ -98,7 +93,7 @@ class BrowserPool {
     const context = await browser.newContext({
       // Minimal context configuration for maximum performance
       userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',  // Shorter UA
-      viewport: { width: 1024, height: 576 },  // Smaller viewport
+      viewport: { width: 426, height: 240 },  // Smaller viewport
       deviceScaleFactor: 1,
       serviceWorkers: 'block',
       reducedMotion: 'reduce',
@@ -123,7 +118,7 @@ class BrowserPool {
       }
     });
 
-    // Ultra-aggressive resource blocking
+    // Resource blocking
     await context.route('**/*', (route) => {
       const request = route.request();
       const type = request.resourceType();
@@ -138,7 +133,7 @@ class BrowserPool {
           return route.abort('blockedbyclient');
         }
         
-        // Block ALL non-essential resource types
+        // Block all non-essential resource types
         if (['image', 'stylesheet', 'font', 'media', 'websocket', 'manifest', 'eventsource', 'other'].includes(type)) {
           return route.abort('blockedbyclient');
         }
@@ -156,48 +151,13 @@ class BrowserPool {
           return route.abort('blockedbyclient');
         }
         
-        // Cache simple GET requests with size limit
-        if (request.method() === 'GET' && type === 'document') {
-          const cacheKey = url;
-          if (this.requestCache.has(cacheKey)) {
-            const cached = this.requestCache.get(cacheKey);
-            return route.fulfill({
-              status: 200,
-              contentType: 'text/html',
-              body: cached
-            });
-          }
-        }
-        
         route.continue();
       } catch (error) {
         route.abort('blockedbyclient');
       }
     });
 
-    // Add response caching for repeated requests with strict limits
-    context.on('response', async (response) => {
-      try {
-        if (response.request().method() === 'GET' && 
-            response.status() === 200 && 
-            response.headers()['content-type']?.includes('text/html')) {
-          const body = await response.text();
-          if (body.length < 50000) {  // Only cache small responses
-            this.requestCache.set(response.url(), body);
-            // Enforce strict cache size limit
-            if (this.requestCache.size > this.maxCacheSize) {
-              // Remove oldest entries (FIFO)
-              const keysToRemove = Array.from(this.requestCache.keys()).slice(0, this.requestCache.size - this.maxCacheSize + 10);
-              keysToRemove.forEach(key => this.requestCache.delete(key));
-            }
-          }
-        }
-      } catch (error) {
-        // Ignore caching errors
-      }
-    });
 
-    this.contextLastUsed.set(context, Date.now());
     return this.wrapContextForReuse(context);
   }
 
@@ -226,23 +186,17 @@ class BrowserPool {
           // Return to pool if there's space and not shutting down
           if (pool.contextPool.length < CONFIG.MAX_CONTEXT_POOL_SIZE && !pool.isShuttingDown) {
             pool.contextPool.push(this);
-            pool.contextLastUsed.set(this, Date.now());
             return;
           }
         } catch (healthError) {
           // Context is no longer healthy, don't return to pool
           console.warn('Context unhealthy, not returning to pool:', healthError.message);
-          // Clean up from tracking
-          pool.contextLastUsed.delete(this);
         }
       } catch (error) {
         console.warn('Error preparing context for reuse:', error.message);
-        // Clean up from tracking on error
-        pool.contextLastUsed.delete(this);
       }
       
-      // Actually close if can't reuse
-      pool.contextLastUsed.delete(this);
+      // Close if can't reuse
       return originalClose();
     };
 
@@ -275,20 +229,6 @@ class BrowserPool {
       if (this.isShuttingDown) return;
       
       try {
-        const now = Date.now();
-
-        // Clean up old contexts from pool
-        const contextsToRemove = [];
-        for (let i = 0; i < this.contextPool.length; i++) {
-          const context = this.contextPool[i];
-          const lastUsed = this.contextLastUsed.get(context) || 0;
-          const idleTime = 30000; // 30 seconds idle timeout for contexts
-
-          if ((now - lastUsed) > idleTime) {
-            contextsToRemove.push(i);
-          }
-        }
-        
         // Remove old contexts (in reverse order to maintain indices)
         for (let i = contextsToRemove.length - 1; i >= 0; i--) {
           const index = contextsToRemove[i];
@@ -298,11 +238,9 @@ class BrowserPool {
             await Promise.all(pages.map(page => page.close().catch(() => {})));
             await context.close();
             this.contextPool.splice(index, 1);
-            this.contextLastUsed.delete(context);
           } catch (error) {
             // Context already closed, just remove from pool
             this.contextPool.splice(index, 1);
-            this.contextLastUsed.delete(context);
           }
         }
 
@@ -351,7 +289,6 @@ class BrowserPool {
                 const pages = await context.pages();
                 await Promise.all(pages.map(page => page.close().catch(() => {})));
                 await context.close();
-                this.contextLastUsed.delete(context);
               })(),
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Context close timeout')), 5000)
@@ -359,7 +296,6 @@ class BrowserPool {
             ]);
           } catch (error) {
             console.warn('Error closing pooled context:', error.message);
-            this.contextLastUsed.delete(context);
           }
         })()
       );
@@ -390,8 +326,6 @@ class BrowserPool {
     // Clear all data structures
     this.lastUsed.clear();
     this.contextPool.length = 0;
-    this.contextLastUsed.clear();
-    this.requestCache.clear();
     this.persistentBrowser = null;
 
     console.log('All browsers and contexts closed successfully');
