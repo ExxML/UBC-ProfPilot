@@ -1,28 +1,10 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { getBrowser, createContext, createPage, navigate } = require('./browser');
+const { createAxiosInstance } = require('./axios-config');
 
-// Create a reusable axios instance with connection pooling
-const axiosInstance = axios.create({
-    timeout: 15000,
-    maxRedirects: 3,
-    maxContentLength: 50000000,
-    maxBodyLength: 50000000,
-    httpAgent: new (require('http').Agent)({
-        keepAlive: true,
-        maxSockets: 5,
-        maxFreeSockets: 2,
-        timeout: 15000,
-        freeSocketTimeout: 30000
-    }),
-    httpsAgent: new (require('https').Agent)({
-        keepAlive: true,
-        maxSockets: 5,
-        maxFreeSockets: 2,
-        timeout: 15000,
-        freeSocketTimeout: 30000
-    })
-});
+// Create a reusable axios instance with connection pooling for course data scraping
+const axiosInstance = createAxiosInstance('courseData');
 
 // Function to search for all professors in a department at a university
 async function searchProfessorsByDepartment(universityNumber, departmentNumber, callback, progressCallback = null) {

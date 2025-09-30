@@ -1,28 +1,9 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { createAxiosInstance } = require('./axios-config');
 
-// Create a reusable axios instance with connection pooling and timeouts
-const axiosInstance = axios.create({
-    timeout: 10000,
-    maxRedirects: 3,
-    maxContentLength: 50000000, // 50MB limit
-    maxBodyLength: 50000000,
-    // Connection pooling settings
-    httpAgent: new (require('http').Agent)({
-        keepAlive: true,
-        maxSockets: 10,
-        maxFreeSockets: 5,
-        timeout: 10000,
-        freeSocketTimeout: 30000
-    }),
-    httpsAgent: new (require('https').Agent)({
-        keepAlive: true,
-        maxSockets: 10,
-        maxFreeSockets: 5,
-        timeout: 10000,
-        freeSocketTimeout: 30000
-    })
-});
+// Create a reusable axios instance with connection pooling for professor URL lookup
+const axiosInstance = createAxiosInstance('profUrl');
 
 // Add headers to mimic a real browser request
 const headers = {
