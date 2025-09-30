@@ -24,16 +24,16 @@ const CourseSearch = () => {
   // Shared timeout handler - eliminates duplication between inactivity and HTTP timeouts
   const createTimeoutHandler = () => {
     return () => {
-      setError(`Request timed out after 3 minutes. The API service likely ran out of memory while loading course professors. Try searching a course with fewer professors.`);
+      setError(`Request timed out after 2 minutes. The API service likely ran out of memory while loading course professors. Try searching a course with fewer professors.`);
       setLoading(false);
       setProgress({ percentage: 0, phase: 'timeout', message: 'Request timed out' });
     };
   };
 
-  // Inactivity detection handler - starts the 3-minute timeout when backend stops sending updates
+  // Inactivity detection handler - starts the 1-minute timeout when backend stops sending updates
   const handleInactivityTimeout = useCallback(() => {
-    setProgress(prev => ({ ...prev, message: 'Waiting for backend response (3 mins)...' }));
-    timeoutRef.current = setTimeout(createTimeoutHandler(), 180000);
+    setProgress(prev => ({ ...prev, message: 'Waiting 1 minute for backend response...' }));
+    timeoutRef.current = setTimeout(createTimeoutHandler(), 60000);
   }, []);
 
   // Initialize WebSocket connection
@@ -54,7 +54,7 @@ const CourseSearch = () => {
 
     // Store event handlers for proper cleanup
     const handleProgress = (data) => {
-      // Clear any existing 3-minute timeout since backend is active again
+      // Clear any existing timeout since backend is active again
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
@@ -65,7 +65,7 @@ const CourseSearch = () => {
       if (inactivityTimeoutRef.current) {
         clearTimeout(inactivityTimeoutRef.current);
       }
-      inactivityTimeoutRef.current = setTimeout(handleInactivityTimeout, 90000); // 90 seconds of inactivity
+      inactivityTimeoutRef.current = setTimeout(handleInactivityTimeout, 60000); // 60 seconds of inactivity
 
       setProgress({
         percentage: data.percentage,
@@ -176,8 +176,8 @@ const CourseSearch = () => {
         sessionId: sessionIdRef.current
       });
     } else {
-      // For HTTP: Set up 3-minute timeout immediately since no progress updates
-      timeoutRef.current = setTimeout(createTimeoutHandler(), 180000);
+      // For HTTP: Set up 1-minute timeout immediately since no progress updates
+      timeoutRef.current = setTimeout(createTimeoutHandler(), 60000);
       // Fallback to direct HTTP request if WebSocket is not available
       try {
         const response = await axios.get(`${API_BACKEND_URL}/course`, {
