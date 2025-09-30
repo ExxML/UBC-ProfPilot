@@ -101,43 +101,16 @@ code {
   }
 }
 
-@keyframes progressGlow {
-  0% { 
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); 
-  }
-  100% { 
-    filter: drop-shadow(0 4px 12px rgba(59, 130, 246, 0.4)); 
-  }
-}
-
-@keyframes progressPulse {
-  0%, 100% { 
-    opacity: 0.3; 
-  }
-  50% { 
-    opacity: 0.1; 
-  }
-}
 
 .progress-bounce-in {
   animation: bounceIn 0.6s ease-out;
-}
-
-.progress-glow {
-  animation: progressGlow 2s ease-in-out infinite alternate;
-}
-
-.progress-pulse {
-  animation: progressPulse 1.5s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .liquid-bg,
   .liquid-bg::before,
   .liquid-bg::after,
-  .progress-bounce-in,
-  .progress-glow,
-  .progress-pulse {
+  .progress-bounce-in {
     animation: none;
   }
 }

@@ -1,10 +1,11 @@
 import React from 'react';
 
-const CircularProgress = ({ 
-  percentage = 0, 
-  size = 120, 
-  strokeWidth = 8, 
-  message = 'Loading...', 
+const GLOW_PADDING = 30;
+const CircularProgress = ({
+  percentage = 0,
+  size = 120,
+  strokeWidth = 8,
+  message = 'Loading...',
   phase = 'idle',
   animate = true,
   searchType = ''
@@ -37,24 +38,48 @@ const CircularProgress = ({
       {/* Circular Progress */}
       <div className="relative">
         <svg
-          width={size}
-          height={size}
+          width={size + GLOW_PADDING}
+          height={size + GLOW_PADDING}
           className="transform -rotate-90"
         >
           {/* Background circle */}
           <circle
-            cx={size / 2}
-            cy={size / 2}
+            cx={(size + GLOW_PADDING) / 2}
+            cy={(size + GLOW_PADDING) / 2}
             r={radius}
             stroke="#e5e7eb"
             strokeWidth={strokeWidth}
             fill="none"
             className="opacity-20"
           />
-          {/* Progress circle */}
+          {/* Multiple glow layers for neon effect */}
+          {Array.from({ length: 8 }, (_, index) => {
+            const glowWidth = 8 - index;
+            const opacity = Math.max(0.05, 0.15 * Math.exp(-index * 0.4));
+            return (
+              <circle
+                key={`glow-${index}`}
+                cx={(size + GLOW_PADDING) / 2}
+                cy={(size + GLOW_PADDING) / 2}
+                r={radius}
+                stroke={config.color}
+                strokeWidth={strokeWidth + glowWidth}
+                fill="none"
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                className="transition-all duration-500 ease-out"
+                style={{
+                  stroke: config.color,
+                  opacity: opacity
+                }}
+              />
+            );
+          })}
+          {/* Main progress circle */}
           <circle
-            cx={size / 2}
-            cy={size / 2}
+            cx={(size + GLOW_PADDING) / 2}
+            cy={(size + GLOW_PADDING) / 2}
             r={radius}
             stroke={config.color}
             strokeWidth={strokeWidth}
@@ -62,29 +87,8 @@ const CircularProgress = ({
             strokeDasharray={strokeDasharray}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            className={`transition-all duration-500 ease-out ${animate ? 'progress-glow' : ''}`}
-            style={{
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
-            }}
+            className="transition-all duration-500 ease-out relative z-10"
           />
-          {/* Glow effect for active progress */}
-          {animate && percentage > 0 && (
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              stroke={config.color}
-              strokeWidth={strokeWidth / 2}
-              fill="none"
-              strokeDasharray={strokeDasharray}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-              className="opacity-30 progress-pulse"
-              style={{
-                filter: 'blur(2px)'
-              }}
-            />
-          )}
         </svg>
         
         {/* Center content */}
