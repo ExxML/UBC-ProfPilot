@@ -38,7 +38,8 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
         const browser = await getBrowser();
         
         // Start timing
-        console.time('Professor Load Time');
+        const profLoadTimerLabel = `Professor Load Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        console.time(profLoadTimerLabel);
         
         // Create context with resource blocking and caching
         let context;
@@ -213,7 +214,7 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
         
         // Get the page content after all professors are loaded
         const html = await page.content();
-        console.timeEnd('Professor Load Time');
+        console.timeEnd(profLoadTimerLabel);
         
         // Parse the HTML to extract professor information
         const $ = cheerio.load(html);
@@ -321,7 +322,8 @@ async function getNumCourseRatings(profURL, courseCode) {
 // Main function to find professors with ratings for a specific course
 async function findProfessorsForCourse(courseName, departmentNumber, universityNumber, callback, progressCallback = null) {
     console.log(`\nSearching for professors with ratings for ${courseName} in department ${departmentNumber} at university ${universityNumber}`);
-    console.time('Total Course Search Time');
+    const timerLabel = `Total Course Search Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.time(timerLabel);
     try {
         // Step 1: Get all professors in the department
         searchProfessorsByDepartment(universityNumber, departmentNumber, async (error, professors) => {
@@ -341,9 +343,10 @@ async function findProfessorsForCourse(courseName, departmentNumber, universityN
             
             const professorsWithCourse = [];
             let processedCount = 0;
-            
+
             // Start timing the number of course ratings check
-            console.time('Check Course Ratings Time');
+            const checkTimerLabel = `Check Course Ratings Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            console.time(checkTimerLabel);
 
             // Process professors sequentially to avoid overwhelming the server
             for (const professor of professors) {
@@ -377,8 +380,8 @@ async function findProfessorsForCourse(courseName, departmentNumber, universityN
             }
             
             console.log(`\nSearch complete! Found ${professorsWithCourse.length} professors with ratings for ${courseName}`);
-            console.timeEnd('Check Course Ratings Time');
-            console.timeEnd('Total Course Search Time');
+            console.timeEnd(checkTimerLabel);
+            console.timeEnd(timerLabel);
             
             if (progressCallback) {
                 progressCallback('complete', 100, `Found ${professorsWithCourse.length} professors teaching ${courseName}!`);

@@ -37,7 +37,8 @@ async function summarizeRatings(ratings) {
     }
 
     try {
-        console.time('AI Summary Generation Time');
+        const aiTimerLabel = `AI Summary Generation Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        console.time(aiTimerLabel);
         const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
@@ -59,7 +60,7 @@ async function summarizeRatings(ratings) {
             temperature: 0.5
         });
         
-        console.timeEnd('AI Summary Generation Time');
+        console.timeEnd(aiTimerLabel);
         console.log(`Input tokens used: ${response.usage.prompt_tokens}`);
         console.log(`Output tokens used: ${response.usage.completion_tokens}`);
         console.log(`Total tokens used: ${response.usage.total_tokens}`);
@@ -72,7 +73,8 @@ async function summarizeRatings(ratings) {
 
 async function getProfData(profURL, callback, progressCallback = null) {
     console.log(`Making request to: ${profURL}`);
-    console.time('Total Professor Data Search Time');
+    const totalTimerLabel = `Total Professor Data Search Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.time(totalTimerLabel);
     let context;
     let page;
     try {
@@ -84,7 +86,8 @@ async function getProfData(profURL, callback, progressCallback = null) {
         }
         
         // Start timing
-        console.time('Rating Load Time');
+        const ratingTimerLabel = `Rating Load Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        console.time(ratingTimerLabel);
         
         // Create context with resource blocking and caching
         context = await createContext(browser);
@@ -244,7 +247,7 @@ async function getProfData(profURL, callback, progressCallback = null) {
         
         // Get the page content after all ratings are loaded
         const html = await page.content();
-        console.timeEnd('Rating Load Time');
+        console.timeEnd(ratingTimerLabel);
             
             // CSS Selector - Using even more generic selectors to improve robustness
             var wouldTakeAgain = "[class*='TeacherFeedback'] div:nth-child(1) [class*='FeedbackNumber']"
@@ -424,7 +427,7 @@ async function getProfData(profURL, callback, progressCallback = null) {
                 ratings: ratings,
                 summary: summary
             });
-        console.timeEnd('Total Professor Data Search Time');
+        console.timeEnd(totalTimerLabel);
 
     } catch (error) {
         console.error('Error fetching professor data:', error.message);
