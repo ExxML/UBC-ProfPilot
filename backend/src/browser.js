@@ -20,8 +20,6 @@ const CONFIG = {
 
 class BrowserPool {
   constructor() {
-    this.browsers = new Map();
-    this.contextCounts = new Map();
     this.lastUsed = new Map();
     this.contextPool = [];  // Pool of reusable contexts
     this.contextLastUsed = new Map();  // Changed from WeakMap to regular Map for proper cleanup
@@ -262,9 +260,6 @@ class BrowserPool {
 
   getBrowserId(browser) {
     if (browser === this.persistentBrowser) return 'persistent';
-    for (const [browserId, b] of this.browsers) {
-      if (b === browser) return browserId;
-    }
     return null;
   }
 
@@ -390,48 +385,20 @@ class BrowserPool {
           }
         }
 
-        // Check persistent browser health
+        // Perform health check on persistent browser
         if (this.persistentBrowser) {
-          const lastUsed = this.lastUsed.get('persistent') || 0;
-          const idleTime = isHighMemory ? CONFIG.IDLE_TIMEOUT / 2 : CONFIG.IDLE_TIMEOUT;
-          
-          if ((now - lastUsed) > idleTime) {
+          try {
+            await this.persistentBrowser.version();
+            console.log('Persistent browser health check passed - keeping alive');
+          } catch (error) {
+            console.warn('Persistent browser unhealthy, recreating:', error.message);
             try {
               await this.persistentBrowser.close();
-              console.log('Closed idle persistent browser');
-            } catch (error) {
-              console.warn('Error closing persistent browser:', error.message);
-            } finally {
-              this.persistentBrowser = null;
-              this.lastUsed.delete('persistent');
+            } catch (closeError) {
+              // Pass
             }
-          }
-        }
-
-        // Legacy browser cleanup (if any exist)
-        const browsersToClose = [];
-        for (const [browserId, browser] of this.browsers) {
-          const lastUsedTime = this.lastUsed.get(browserId) || 0;
-          const contextCount = this.contextCounts.get(browserId) || 0;
-          
-          const idleWindow = isHighMemory ? Math.min(CONFIG.IDLE_TIMEOUT, 60000) : CONFIG.IDLE_TIMEOUT;
-          if (contextCount === 0 && (now - lastUsedTime) > idleWindow) {
-            browsersToClose.push(browserId);
-          }
-        }
-        
-        for (const browserId of browsersToClose) {
-          try {
-            const browser = this.browsers.get(browserId);
-            if (browser) {
-              await browser.close();
-              this.browsers.delete(browserId);
-              this.contextCounts.delete(browserId);
-              this.lastUsed.delete(browserId);
-              console.log(`Closed idle legacy browser: ${browserId}`);
-            }
-          } catch (error) {
-            console.error(`Error closing legacy browser ${browserId}:`, error.message);
+            this.persistentBrowser = null;
+            this.lastUsed.delete('persistent');
           }
         }
 
@@ -489,20 +456,9 @@ class BrowserPool {
       );
     }
     
-    // Close legacy browsers
-    for (const [browserId, browser] of this.browsers) {
-      closePromises.push(
-        browser.close().catch(error => 
-          console.error(`Error closing browser ${browserId}:`, error.message)
-        )
-      );
-    }
-    
     await Promise.allSettled(closePromises);
-    
+
     // Clear all data structures
-    this.browsers.clear();
-    this.contextCounts.clear();
     this.lastUsed.clear();
     this.contextPool.length = 0;
     this.contextLastUsed.clear();  // Clear context tracking
@@ -515,8 +471,8 @@ class BrowserPool {
   getStats() {
     const memUsage = process.memoryUsage();
     return {
-      totalBrowsers: this.browsers.size + (this.persistentBrowser ? 1 : 0),
-      totalContexts: Array.from(this.contextCounts.values()).reduce((sum, count) => sum + count, 0),
+      totalBrowsers: (this.persistentBrowser ? 1 : 0),
+      totalContexts: 0,
       pooledContexts: this.contextPool.length,
       cacheSize: this.requestCache.size,
       memoryUsage: {
@@ -529,11 +485,7 @@ class BrowserPool {
         lastUsed: this.lastUsed.get('persistent') || 0,
         isConnected: !this.persistentBrowser.disconnected
       } : null,
-      browsersInfo: Array.from(this.browsers.keys()).map(browserId => ({
-        id: browserId,
-        contexts: this.contextCounts.get(browserId) || 0,
-        lastUsed: this.lastUsed.get(browserId) || 0
-      }))
+      browsersInfo: []
     };
   }
 }
