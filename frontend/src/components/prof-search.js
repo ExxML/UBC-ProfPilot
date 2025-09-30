@@ -81,19 +81,23 @@ const ProfessorSearch = () => {
   const inactivityTimeoutRef = useRef(null);
   const lastMessageTimeRef = useRef(null);
 
+  // If no updates from backend for SEARCH_TIMEOUT ms, update progress msg and wait FINAL_SEARCH_TIMEOUT ms before completely timing out
+  const FINAL_SEARCH_TIMEOUT = 60000;
+  const SEARCH_TIMEOUT = 180000;
+
   // Shared timeout handler - eliminates duplication between inactivity and HTTP timeouts
   const createTimeoutHandler = () => {
     return () => {
-      setError(`Request timed out after 2 minutes. The API service likely ran out of memory while loading professor ratings. Try searching a professor with fewer ratings.`);
+      setError(`Request timed out after 4 minutes. The API service likely ran out of memory while loading professor ratings. Try searching a professor with fewer ratings.`);
       setLoading(false);
       setProgress({ percentage: 0, phase: 'timeout', message: 'Request timed out' });
     };
   };
 
-  // Inactivity detection handler - starts the 1-minute timeout when backend stops sending updates
+  // Inactivity detection handler - starts the FINAL_SEARCH_TIMEOUT when backend stops sending updates
   const handleInactivityTimeout = useCallback(() => {
     setProgress(prev => ({ ...prev, message: 'Waiting 1 minute for backend response...' }));
-    timeoutRef.current = setTimeout(createTimeoutHandler(), 60000);
+    timeoutRef.current = setTimeout(createTimeoutHandler(), FINAL_SEARCH_TIMEOUT);
   }, []);
 
   // Initialize WebSocket connection
@@ -125,7 +129,7 @@ const ProfessorSearch = () => {
       if (inactivityTimeoutRef.current) {
         clearTimeout(inactivityTimeoutRef.current);
       }
-      inactivityTimeoutRef.current = setTimeout(handleInactivityTimeout, 60000); // 60 seconds of inactivity
+      inactivityTimeoutRef.current = setTimeout(handleInactivityTimeout, SEARCH_TIMEOUT); // Wait for no updates from backend before starting FINAL_SEARCH_TIMEOUT countdown
 
       setProgress({
         percentage: data.percentage,
@@ -236,8 +240,8 @@ const ProfessorSearch = () => {
         sessionId: sessionIdRef.current
       });
     } else {
-      // For HTTP: Set up 1-minute timeout immediately since no progress updates
-      timeoutRef.current = setTimeout(createTimeoutHandler(), 60000);
+      // For HTTP: Set up timeout immediately since no progress updates
+      timeoutRef.current = setTimeout(createTimeoutHandler(), SEARCH_TIMEOUT + FINAL_SEARCH_TIMEOUT);
 
       // Fallback to direct HTTP request if WebSocket is not available
       try {
