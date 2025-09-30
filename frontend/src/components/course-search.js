@@ -21,7 +21,7 @@ const CourseSearch = () => {
 
   // Timeout handler function (defined outside useEffect for proper scoping)
   const handleTimeout = () => {
-    setError('Request timed out after 5 minutes. The backend may be experiencing issues.');
+    setError(`Request timed out after 3 minutes. The service likely ran out of memory while loading course professors. Try searching a course with fewer professors.`);
     setLoading(false);
     setProgress({ percentage: 0, phase: 'timeout', message: 'Request timed out' });
   };
@@ -123,8 +123,8 @@ const CourseSearch = () => {
     startTimeRef.current = performance.now();
     setSearchDurationMs(null);
 
-    // Set up 5-minute timeout (300,000ms)
-    timeoutRef.current = setTimeout(handleTimeout, 300000);
+    // Set up 3-minute timeout (180,000ms)
+    timeoutRef.current = setTimeout(handleTimeout, 180000);
 
     if (socketRef.current) {
       socketRef.current.emit('start-course-search', {
