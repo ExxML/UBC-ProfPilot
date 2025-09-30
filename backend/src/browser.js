@@ -345,7 +345,7 @@ class BrowserPool {
       } catch (error) {
         console.error('Error in cleanup routine:', error.message);
       }
-    }, 60000); // Run cleanup every 60 seconds
+    }, 10000); // Run cleanup every 10 seconds
   }
 
   async closeAll() {
