@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { API_BACKEND_URL, DEPARTMENT_MAPPINGS, UNIVERSITY_CONFIG } from '../config.js';
@@ -36,10 +36,10 @@ const CourseSearch = () => {
   };
 
   // Inactivity detection handler - starts the 3-minute timeout when backend stops sending updates
-  const handleInactivityTimeout = () => {
+  const handleInactivityTimeout = useCallback(() => {
     setProgress(prev => ({ ...prev, message: 'Waiting for backend response...' }));
     timeoutRef.current = setTimeout(createTimeoutHandler('course'), 180000);
-  };
+  }, []);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -138,7 +138,7 @@ const CourseSearch = () => {
         inactivityTimeoutRef.current = null;
       }
     };
-  }, []);
+  }, [handleInactivityTimeout]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
