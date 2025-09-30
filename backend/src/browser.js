@@ -4,16 +4,16 @@ const os = require('os');
 
 // Browser config
 const CONFIG = {
-  MAX_BROWSERS: parseInt(process.env.MAX_BROWSERS) || 1,  // Single browser instance
-  MAX_CONTEXTS_PER_BROWSER: parseInt(process.env.MAX_CONTEXTS_PER_BROWSER) || 2,
-  MAX_CONTEXT_POOL_SIZE: parseInt(process.env.MAX_CONTEXT_POOL_SIZE) || 1,  // Context pool for reuse
-  BROWSER_TIMEOUT: parseInt(process.env.BROWSER_TIMEOUT) || 20000,
-  PAGE_TIMEOUT: parseInt(process.env.PAGE_TIMEOUT) || 20000,
-  NAVIGATION_TIMEOUT: parseInt(process.env.NAVIGATION_TIMEOUT) || 20000,
-  IDLE_TIMEOUT: parseInt(process.env.IDLE_TIMEOUT) || 300000,
-  CONTEXT_IDLE_TIMEOUT: parseInt(process.env.CONTEXT_IDLE_TIMEOUT) || 10000,
-  MEMORY_PRESSURE_THRESHOLD: parseFloat(process.env.MEMORY_PRESSURE_THRESHOLD) || 0.6,
-  PRELOAD_CONTEXTS: parseInt(process.env.PRELOAD_CONTEXTS) || 1,  // Pre-warm contexts
+  MAX_BROWSERS: 1,  // Single browser instance
+  MAX_CONTEXTS_PER_BROWSER: 2,
+  MAX_CONTEXT_POOL_SIZE: 1,  // Context pool for reuse
+  BROWSER_TIMEOUT: 20000,
+  PAGE_TIMEOUT: 20000,
+  NAVIGATION_TIMEOUT: 20000,
+  IDLE_TIMEOUT: 300000,
+  CONTEXT_IDLE_TIMEOUT: 10000,
+  MEMORY_PRESSURE_THRESHOLD: 0.6,
+  PRELOAD_CONTEXTS: 1,  // Pre-warm a context
 };
 
 class BrowserPool {
@@ -350,25 +350,32 @@ class BrowserPool {
 
   async closeAll() {
     this.isShuttingDown = true;
-    
-    // Clear intervals
+
+    // Clear intervals immediately
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
-    
+
     const closePromises = [];
-    
-    // Close all contexts in pool with proper cleanup
+
+    // Close all contexts in pool with timeout protection
     for (const context of this.contextPool) {
       closePromises.push(
         (async () => {
           try {
-            const pages = await context.pages();
-            await Promise.all(pages.map(page => page.close().catch(() => {})));
-            await context.close();
-            // Clean up tracking
-            this.contextLastUsed.delete(context);
+            // Add timeout to prevent hanging
+            await Promise.race([
+              (async () => {
+                const pages = await context.pages();
+                await Promise.all(pages.map(page => page.close().catch(() => {})));
+                await context.close();
+                this.contextLastUsed.delete(context);
+              })(),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Context close timeout')), 5000)
+              )
+            ]);
           } catch (error) {
             console.warn('Error closing pooled context:', error.message);
             this.contextLastUsed.delete(context);
@@ -376,25 +383,36 @@ class BrowserPool {
         })()
       );
     }
-    
-    // Close persistent browser
+
+    // Close persistent browser with timeout protection
     if (this.persistentBrowser) {
       closePromises.push(
-        this.persistentBrowser.close().catch(error => 
-          console.error('Error closing persistent browser:', error.message)
-        )
+        Promise.race([
+          this.persistentBrowser.close().catch(error =>
+            console.error('Error closing persistent browser:', error.message)
+          ),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Browser close timeout')), 10000)
+          )
+        ])
       );
     }
-    
-    await Promise.allSettled(closePromises);
+
+    // Use allSettled with overall timeout to prevent indefinite hanging
+    await Promise.race([
+      Promise.allSettled(closePromises),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Browser cleanup timeout')), 25000)
+      )
+    ]);
 
     // Clear all data structures
     this.lastUsed.clear();
     this.contextPool.length = 0;
-    this.contextLastUsed.clear();  // Clear context tracking
+    this.contextLastUsed.clear();
     this.requestCache.clear();
     this.persistentBrowser = null;
-    
+
     console.log('All browsers and contexts closed successfully');
   }
 
@@ -480,33 +498,6 @@ async function closeBrowser() {
 function getBrowserStats() {
   return browserPool.getStats();
 }
-
-
-// Shutdown handlers
-const shutdown = async (signal) => {
-  console.log(`Received ${signal}. Closing browsers...`);
-  try {
-    await browserPool.closeAll();
-    console.log('Browser cleanup completed');
-  } catch (error) {
-    console.error('Error during browser cleanup:', error.message);
-  } finally {
-    process.exit(0);
-  }
-};
-
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('uncaughtException', async (error) => {
-  console.error('Uncaught exception:', error);
-  await browserPool.closeAll();
-  process.exit(1);
-});
-process.on('unhandledRejection', async (reason, promise) => {
-  console.error('Unhandled rejection at:', promise, 'reason:', reason);
-  await browserPool.closeAll();
-  process.exit(1);
-});
 
 module.exports = {
   getBrowser,
