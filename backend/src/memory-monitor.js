@@ -9,9 +9,25 @@ const os = require('os');
 function checkMemoryUsage(limitMB) {
     try {
         const memUsage = process.memoryUsage();
-        const memoryUsageMB = memUsage.rss / (1024 * 1024); // Convert bytes to MB
 
-        console.log(`Current memory usage: ${memoryUsageMB.toFixed(2)} MB`);
+        // Calculate comprehensive memory usage including:
+        // - RSS (Resident Set Size) - memory held in RAM
+        // - External memory - C++ objects bound to JavaScript objects
+        // - Heap memory (used and total)
+        const rssMB = memUsage.rss / (1024 * 1024);
+        const externalMB = memUsage.external / (1024 * 1024);
+        const heapUsedMB = memUsage.heapUsed / (1024 * 1024);
+        const heapTotalMB = memUsage.heapTotal / (1024 * 1024);
+
+        // Use the highest value among RSS, external, and heap usage as the estimate
+        const memoryUsageMB = Math.max(rssMB, externalMB, heapUsedMB, heapTotalMB);
+
+        console.log(`Memory usage details:`);
+        console.log(`  RSS: ${rssMB.toFixed(2)} MB`);
+        console.log(`  External: ${externalMB.toFixed(2)} MB`);
+        console.log(`  Heap Used: ${heapUsedMB.toFixed(2)} MB`);
+        console.log(`  Heap Total: ${heapTotalMB.toFixed(2)} MB`);
+        console.log(`  Estimated total: ${memoryUsageMB.toFixed(2)} MB`);
 
         if (memoryUsageMB > limitMB) {
             console.warn(`Memory usage (${memoryUsageMB.toFixed(2)} MB) exceeds limit (${limitMB} MB)`);
@@ -25,21 +41,6 @@ function checkMemoryUsage(limitMB) {
     }
 }
 
-/**
- * Get current memory usage in MB
- * @returns {number} - Memory usage in megabytes
- */
-function getMemoryUsageMB() {
-    try {
-        const memUsage = process.memoryUsage();
-        return memUsage.rss / (1024 * 1024); // Convert bytes to MB
-    } catch (error) {
-        console.error('Error getting memory usage:', error.message);
-        return 0;
-    }
-}
-
 module.exports = {
-    checkMemoryUsage,
-    getMemoryUsageMB
+    checkMemoryUsage
 };
