@@ -18,12 +18,17 @@ const CourseSearch = () => {
   const sessionIdRef = useRef(null);
   const startTimeRef = useRef(null);
   const timeoutRef = useRef(null);
+  const inactivityTimeoutRef = useRef(null);
+  const lastMessageTimeRef = useRef(null);
 
-  // Timeout handler function (defined outside useEffect for proper scoping)
-  const handleTimeout = () => {
-    setError(`Request timed out after 3 minutes. The service likely ran out of memory while loading course professors. Try searching a course with fewer professors.`);
-    setLoading(false);
-    setProgress({ percentage: 0, phase: 'timeout', message: 'Request timed out' });
+  // Inactivity detection handler - starts the 3-minute timeout when backend stops sending updates
+  const handleInactivityTimeout = () => {
+    setProgress(prev => ({ ...prev, message: 'Waiting for backend response...' }));
+    timeoutRef.current = setTimeout(() => {
+      setError(`Request timed out after 3 minutes. The service likely ran out of memory while loading course professors. Try searching a course with fewer professors.`);
+      setLoading(false);
+      setProgress({ percentage: 0, phase: 'timeout', message: 'Request timed out' });
+    }, 180000);
   };
 
   // Initialize WebSocket connection
@@ -44,6 +49,19 @@ const CourseSearch = () => {
 
     // Store event handlers for proper cleanup
     const handleProgress = (data) => {
+      // Clear any existing 3-minute timeout since backend is active again
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      // Update last message time and reset inactivity timer
+      lastMessageTimeRef.current = Date.now();
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+      }
+      inactivityTimeoutRef.current = setTimeout(handleInactivityTimeout, 90000); // 90 seconds of inactivity
+
       setProgress({
         percentage: data.percentage,
         phase: data.phase,
@@ -58,10 +76,14 @@ const CourseSearch = () => {
       setLoading(false);
       setProgress({ percentage: 100, phase: 'complete', message: 'Course search complete!' });
 
-      // Clear timeout timer
+      // Clear both timeout timers
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
+      }
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+        inactivityTimeoutRef.current = null;
       }
     };
 
@@ -70,10 +92,14 @@ const CourseSearch = () => {
       setLoading(false);
       setProgress({ percentage: 0, phase: 'error', message: 'Course search failed' });
 
-      // Clear timeout timer
+      // Clear both timeout timers
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
+      }
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+        inactivityTimeoutRef.current = null;
       }
     };
 
@@ -90,10 +116,17 @@ const CourseSearch = () => {
         socket.off('course-search-error', handleError);
         socket.disconnect();
       }
-      // Clear refs
+      // Clear refs and timers
       socketRef.current = null;
       startTimeRef.current = null;
-      timeoutRef.current = null;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+        inactivityTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -112,7 +145,7 @@ const CourseSearch = () => {
     setResult(null);
     setProgress({ percentage: 0, phase: 'department-load', message: 'Initializing API (may take ~1 minute)...' });
 
-    // Clear previous timer reference to prevent memory leaks
+    // Clear previous timer references to prevent memory leaks
     if (startTimeRef.current) {
       startTimeRef.current = null;
     }
@@ -120,13 +153,17 @@ const CourseSearch = () => {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+    if (inactivityTimeoutRef.current) {
+      clearTimeout(inactivityTimeoutRef.current);
+      inactivityTimeoutRef.current = null;
+    }
     startTimeRef.current = performance.now();
     setSearchDurationMs(null);
 
-    // Set up 3-minute timeout (180,000ms)
-    timeoutRef.current = setTimeout(handleTimeout, 180000);
-
     if (socketRef.current) {
+      // For WebSocket: Initialize last message time to start inactivity detection
+      lastMessageTimeRef.current = Date.now();
+
       socketRef.current.emit('start-course-search', {
         course_name: formData.course_name,
         department_number: DEPARTMENT_MAPPINGS[formData.department_name],
@@ -134,6 +171,12 @@ const CourseSearch = () => {
         sessionId: sessionIdRef.current
       });
     } else {
+      // For HTTP: Set up 3-minute timeout immediately since no progress updates
+      timeoutRef.current = setTimeout(() => {
+        setError(`Request timed out after 3 minutes. The service likely ran out of memory while loading course professors. Try searching a course with fewer professors.`);
+        setLoading(false);
+        setProgress({ percentage: 0, phase: 'timeout', message: 'Request timed out' });
+      }, 180000);
       // Fallback to direct HTTP request if WebSocket is not available
       try {
         const response = await axios.get(`${API_BACKEND_URL}/course`, {
@@ -148,19 +191,27 @@ const CourseSearch = () => {
         const end = performance.now();
         setSearchDurationMs(end - (startTimeRef.current || end));
 
-        // Clear timeout timer
+        // Clear both timeout timers
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
           timeoutRef.current = null;
+        }
+        if (inactivityTimeoutRef.current) {
+          clearTimeout(inactivityTimeoutRef.current);
+          inactivityTimeoutRef.current = null;
         }
       } catch (err) {
         setError(err.response?.data?.error || err.message);
         setProgress({ percentage: 0, phase: 'error', message: 'Course search failed' });
 
-        // Clear timeout timer
+        // Clear both timeout timers
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
           timeoutRef.current = null;
+        }
+        if (inactivityTimeoutRef.current) {
+          clearTimeout(inactivityTimeoutRef.current);
+          inactivityTimeoutRef.current = null;
         }
       } finally {
         setLoading(false);
