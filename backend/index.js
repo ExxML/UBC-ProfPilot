@@ -304,6 +304,9 @@ const shutdown = async (signal) => {
     if (cleanupInterval) {
         clearInterval(cleanupInterval);
     }
+
+    // Notify all connected clients about shutdown
+    io.emit('server_shutdown', { message: 'Server is shutting down' });
     
     // Stop accepting new connections
     server.close(async (err) => {
@@ -318,19 +321,33 @@ const shutdown = async (signal) => {
             activeConnections.clear();
             connectionTimestamps.clear();
 
+            // Disconnect all socket clients
+            const sockets = await io.fetchSockets();
+            await Promise.all(sockets.map(socket => socket.disconnect(true)));
+            console.log('All socket connections terminated');
+
             // Close all browser instances with timeout protection
             console.log('Closing browser instances...');
             try {
                 await Promise.race([
                     closeBrowser(),
                     new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Browser cleanup timeout')), 25000)
+                        setTimeout(() => reject(new Error('Browser cleanup timeout')), 20000)
                     )
                 ]);
                 console.log('Browser cleanup completed');
             } catch (browserError) {
                 console.error('Browser cleanup failed or timed out:', browserError.message);
-                // Continue with shutdown even if browser cleanup fails
+            }
+            
+            // Run garbage collection if available
+            if (global.gc) {
+                try {
+                    global.gc();
+                    console.log('Forced garbage collection completed');
+                } catch (gcError) {
+                    console.warn('Failed to force garbage collection:', gcError.message);
+                }
             }
 
             console.log('Shutdown completed');
@@ -341,11 +358,11 @@ const shutdown = async (signal) => {
         }
     });
     
-    // Force exit if shutdown takes too long (increased for browser cleanup)
+    // Force exit if shutdown takes too long
     setTimeout(() => {
-        console.error('Shutdown timed out after 30 seconds, forcing exit');
+        console.error('Shutdown timed out after 60 seconds, forcing exit');
         process.exit(1);
-    }, 30000);
+    }, 60000);
 };
 
 // Register signal handlers for graceful shutdown
