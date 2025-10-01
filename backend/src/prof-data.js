@@ -199,7 +199,10 @@ async function getProfData(profURL, callback, progressCallback = null) {
                         
                         if (isVisible) {
                             // Click the button using page.click to avoid stale element issues
-                            await page.click(cachedButtonSelector || 'button[class*="loadMore"]');
+                            await page.evaluate(() => {
+                                const button = document.querySelector(arguments[0]);
+                                if (button) button.click();
+                            }, cachedButtonSelector || 'button[class*="loadMore"]');
                             attemptCount++;
                             
                             // Quick check if more content is loading
@@ -228,8 +231,13 @@ async function getProfData(profURL, callback, progressCallback = null) {
                         loadMoreVisible = false;
                     }
                 } catch (clickError) {
-                    console.log('Error clicking Load More button:', clickError.message);
                     loadMoreVisible = false;
+                    if (clickError.message.includes("Timeout")) {
+                        console.log('Load More button timeout reached, stop loading new data');
+                        break;
+                    } else {
+                        console.log('Error clicking Load More button:', clickError.message);
+                    }
                 }
             } catch (error) {
                 console.log('Error while loading more ratings:', error.message);
