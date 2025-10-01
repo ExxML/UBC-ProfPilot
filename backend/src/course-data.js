@@ -182,8 +182,15 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
                 }
             } catch (error) {
                 console.log('Error while loading more professors:', error.message);
+
+                // Break out of loop if browser/page/context has been closed
+                if (error.message.includes("Target page, context or browser has been closed")) {
+                    console.log('Browser/page/context closed, stop loading new data');
+                    loadMoreVisible = false;
+                    break;
+                }
+
                 attemptCount++;
-                
                 // More lenient error handling - only stop after many errors
                 if (attemptCount > 10 && error.message.includes('click')) {
                     console.log('Multiple click errors occurred, stopping.');

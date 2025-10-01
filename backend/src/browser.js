@@ -10,10 +10,21 @@ const CONFIG = {
   PRELOAD_CONTEXTS: 1,  // Pre-warm a context
 };
 
-// Helper function to handle close errors
+// Helper function to safely close resources by checking if they're already closed first
 async function safeClose(resource, resourceName = 'resource') {
   try {
-    await resource.close();
+    // Check if the resource is already closed before attempting to close it
+    let isClosed = false;
+
+    // Check browser connection status to determine if closed
+    if (typeof resource.isConnected === 'function') {
+      isClosed = !resource.isConnected();
+    }
+
+    // Only close if not already closed
+    if (!isClosed) {
+      await resource.close();
+    }
   } catch (error) {
     if (error.message.includes('Target page, context or browser has been closed')) {
       // Pass - ignore this error as it's expected when resources are already closed
