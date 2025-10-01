@@ -1,4 +1,4 @@
-const { getBrowser, createContext, createPage, navigate } = require('./browser');
+const { getBrowser, createContext, createPage, navigate, safeClose } = require('./browser');
 const cheerio = require('cheerio');
 const OpenAI = require('openai');
 const { checkMemoryUsage } = require('./memory-monitor');
@@ -451,9 +451,9 @@ async function getProfData(profURL, callback, progressCallback = null) {
             try {
                 // Close all pages first
                 const pages = await context.pages();
-                await Promise.all(pages.map(page => page.close().catch(() => {})));
+                await Promise.all(pages.map(page => safeClose(page, 'page')));
                 // Then close context
-                await context.close();
+                await safeClose(context, 'context');
             } catch (error) {
                 console.warn('Error during context cleanup in prof-data:', error.message);
             }

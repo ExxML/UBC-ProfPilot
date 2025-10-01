@@ -10,6 +10,19 @@ const CONFIG = {
   PRELOAD_CONTEXTS: 1,  // Pre-warm a context
 };
 
+// Helper function to handle close errors
+async function safeClose(resource, resourceName = 'resource') {
+  try {
+    await resource.close();
+  } catch (error) {
+    if (error.message.includes('Target page, context or browser has been closed')) {
+      // Pass - ignore this error as it's expected when resources are already closed
+    } else {
+      console.warn(`Error closing ${resourceName}:`, error.message);
+    }
+  }
+}
+
 class BrowserPool {
   constructor() {
     this.lastUsed = new Map();
@@ -73,7 +86,7 @@ class BrowserPool {
         
         // Additional check to ensure we can create a new page
         const testPage = await context.newPage();
-        await testPage.close();
+        await safeClose(testPage, 'test page');
         
         return this.wrapContextForReuse(context);
       } catch (error) {
@@ -81,11 +94,7 @@ class BrowserPool {
         console.warn('Pooled context unhealthy, creating new:', error.message);
         // Clean up dead context references
         // Try to properly close the unhealthy context
-        try {
-          await context.close();
-        } catch (closeError) {
-          // Ignore close errors for unhealthy contexts
-        }
+        await safeClose(context, 'unhealthy context');
       }
     }
 
@@ -169,14 +178,7 @@ class BrowserPool {
       try {
         // Clear pages but keep context alive
         const pages = await this.pages();
-        await Promise.all(pages.map(page => {
-          return page.close().catch(error => {
-            // Ignore errors from pages that are already closed
-            if (!error.message.includes('Target page, context or browser has been closed')) {
-              console.warn('Error closing page:', error.message);
-            }
-          });
-        }));
+        await Promise.all(pages.map(page => safeClose(page, 'page')));
         
         // Verify context is still healthy before returning to pool
         try {
@@ -209,7 +211,7 @@ class BrowserPool {
         const browser = await this.getBrowser();
         for (let i = 0; i < CONFIG.PRELOAD_CONTEXTS; i++) {
           const context = await this.createContext(browser);
-          await context.close(); // This will add it to the pool
+          await safeClose(context, 'preload context'); // This will add it to the pool
         }
         console.log(`Pre-warmed ${CONFIG.PRELOAD_CONTEXTS} contexts`);
       } catch (error) {
@@ -230,11 +232,7 @@ class BrowserPool {
             // Browser is healthy, do nothing
           } catch (error) {
             console.warn('Persistent browser unhealthy, recreating:', error.message);
-            try {
-              await this.persistentBrowser.close();
-            } catch (closeError) {
-              // Pass
-            }
+            await safeClose(this.persistentBrowser, 'persistent browser');
             this.persistentBrowser = null;
             this.lastUsed.delete('persistent');
           }
@@ -266,8 +264,8 @@ class BrowserPool {
             await Promise.race([
               (async () => {
                 const pages = await context.pages();
-                await Promise.all(pages.map(page => page.close().catch(() => {})));
-                await context.close();
+                await Promise.all(pages.map(page => safeClose(page, 'page')));
+                await safeClose(context, 'context');
               })(),
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Context close timeout')), 5000)
@@ -284,9 +282,7 @@ class BrowserPool {
     if (this.persistentBrowser) {
       closePromises.push(
         Promise.race([
-          this.persistentBrowser.close().catch(error =>
-            console.error('Error closing persistent browser:', error.message)
-          ),
+          safeClose(this.persistentBrowser, 'persistent browser'),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Browser close timeout')), 10000)
           )
@@ -315,7 +311,7 @@ class BrowserPool {
       try {
         console.log('Closing persistent browser...');
         await Promise.race([
-          this.persistentBrowser.close(),
+          safeClose(this.persistentBrowser, 'persistent browser'),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Persistent browser close timeout')), 10000)
           )
@@ -403,5 +399,6 @@ module.exports = {
   navigate,
   closeBrowser,
   closePersistentBrowser,
+  safeClose,
   CONFIG
 };

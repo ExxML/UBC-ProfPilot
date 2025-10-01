@@ -1,6 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { getBrowser, createContext, createPage, navigate } = require('./browser');
+const { getBrowser, createContext, createPage, navigate, safeClose } = require('./browser');
 const { createAxiosInstance } = require('./axios-config');
 const { checkMemoryUsage } = require('./memory-monitor');
 
@@ -260,9 +260,9 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
                 try {
                     // Close all pages first
                     const pages = await context.pages();
-                    await Promise.all(pages.map(page => page.close().catch(() => {})));
+                    await Promise.all(pages.map(page => safeClose(page, 'page')));
                     // Then close context
-                    await context.close();
+                    await safeClose(context, 'context');
                 } catch (error) {
                     console.warn('Error during context cleanup in course-data:', error.message);
                 }
