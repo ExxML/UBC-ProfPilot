@@ -324,11 +324,12 @@ class BrowserPool {
         await Promise.race([
           safeClose(this.persistentBrowser, 'persistent browser'),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Persistent browser close timeout')), 10000)
+            setTimeout(() => reject(new Error('Persistent browser close timeout')), 30000)
           )
         ]);
         this.persistentBrowser = null;
         this.lastUsed.delete('persistent');
+        console.log('Persistent browser closed successfully');
       } catch (error) {
         console.error('Error closing persistent browser:', error.message);
         // Clear the reference even if close failed
