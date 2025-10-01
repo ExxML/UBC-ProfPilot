@@ -282,6 +282,9 @@ const CourseSearch = () => {
           <p className="text-sm text-gray-800">
             Search for any UBC course to get a list of all the professors who have taught the course!
           </p>
+          <p className="text-sm text-gray-600 mt-1">
+            <strong>Tip:</strong> To keep within API service limits, try searching departments with 150 professors or less.
+          </p>
         </div>
 
 
