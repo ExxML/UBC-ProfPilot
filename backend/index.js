@@ -5,8 +5,9 @@ const { closeBrowser, closePersistentBrowser } = require('./src/browser')
 const express = require('express');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
-var app = express();
 const cors = require('cors');
+const app = express();
+
 const frontendUrl = process.env.FRONTEND_URL
 
 app.use(cors({origin: frontendUrl || 'http://localhost:3000'}));
@@ -379,3 +380,5 @@ process.on('unhandledRejection', async (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
     await shutdown('unhandledRejection');
 });
+
+module.exports = app
