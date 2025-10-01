@@ -24,7 +24,7 @@ function checkMemoryUsage(limitMB) {
         console.log(`  Heap Used: ${heapUsedMB.toFixed(2)} MB`);
         console.log(`  Heap Total: ${heapTotalMB.toFixed(2)} MB`);
 
-        if (memoryUsageMB > limitMB) {
+        if (rssMB > limitMB) {
             console.warn(`Memory usage exceeds limit (${limitMB} MB)`);
             return true;
         }
