@@ -148,8 +148,8 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
                         
                         if (isVisible) {
                             // Click the button using page.evaluate to bypass pointer events
-                            await page.evaluate(() => {
-                                const button = document.querySelector(arguments[0]);
+                            await page.evaluate((selector) => {
+                                const button = document.querySelector(selector);
                                 if (button) button.click();
                             }, cachedButtonSelector || 'button[class*="loadMore"]');
                             attemptCount++;

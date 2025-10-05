@@ -199,8 +199,8 @@ async function getProfData(profURL, callback, progressCallback = null) {
                         
                         if (isVisible) {
                             // Click the button using page.click to avoid stale element issues
-                            await page.evaluate(() => {
-                                const button = document.querySelector(arguments[0]);
+                            await page.evaluate((selector) => {
+                                const button = document.querySelector(selector);
                                 if (button) button.click();
                             }, cachedButtonSelector || 'button[class*="loadMore"]');
                             attemptCount++;
