@@ -1,7 +1,6 @@
 const { getBrowser, createContext, createPage, navigate, safeClose } = require('./browser');
 const cheerio = require('cheerio');
 const OpenAI = require('openai');
-const { checkMemoryUsage } = require('./memory-monitor');
 require('dotenv').config();
 
 // Initialize OpenAI client
@@ -108,6 +107,7 @@ async function getProfData(profURL, callback, progressCallback = null) {
         console.log('Total ratings:', totalRatings);
         
         let loadMoreVisible = true;
+        let rawRatingsCount = 0;
         let currentRatingsCount = 0;
         let attemptCount = 0;
         let cachedButtonSelector = null; // Cache the working button selector
@@ -161,24 +161,17 @@ async function getProfData(profURL, callback, progressCallback = null) {
             return jsHandle.asElement();
         };
         
-        while (loadMoreVisible && attemptCount < maxAttempts) {
+        while (loadMoreVisible && attemptCount < maxAttempts && currentRatingsCount < 200) {
             try {
-                // Check memory usage before loading more ratings (500 MB limit to leave error margin (512 MB max memory usage))
-                if (checkMemoryUsage(500)) {
-                    console.log('Memory limit reached during ratings loading. Skipping to Step 2 (AI summary).');
-                    loadMoreVisible = false;
-                    break;
-                }
-
                 // Quick count of current ratings
-                currentRatingsCount = await page.$$eval('[class*="Rating-"], [class*="RatingsList"] > div, [class*="Comments"] > div', elements => elements.length);
-                
-                const loadedCount = Math.floor(currentRatingsCount / 4);
-                console.log(`Attempt ${attemptCount}: ${loadedCount} ratings loaded`);  // divide by 4 because each rating has 3 empty elements (for some reason?)
+                rawRatingsCount = await page.$$eval('[class*="Rating-"], [class*="RatingsList"] > div, [class*="Comments"] > div', elements => elements.length);
+
+                currentRatingsCount = Math.floor(rawRatingsCount / 4);
+                console.log(`Attempt ${attemptCount}: ${currentRatingsCount} ratings loaded`);  // divide by 4 because each rating has 3 empty elements (for some reason)
                 
                 if (progressCallback && totalRatings > 0) {
-                    const progress = Math.min(45 + (loadedCount / totalRatings) * 35, 80);
-                    progressCallback('ratings-load', progress, `Loading ratings: ${loadedCount}/${totalRatings}`);
+                    const progress = Math.min(45 + (currentRatingsCount / totalRatings) * 35, 80);
+                    progressCallback('ratings-load', progress, `Loading ratings: ${currentRatingsCount}/${totalRatings}`);
                 }
                 
                 // Find and click the load more button (get fresh reference each time)
@@ -262,11 +255,11 @@ async function getProfData(profURL, callback, progressCallback = null) {
             console.log(`Reached maximum attempts (${maxAttempts}), stopping.`);
         }
 
-        if (totalRatings > Math.floor(currentRatingsCount / 4)) {
+        if (totalRatings > currentRatingsCount) {
             console.log('WARNING: Not all ratings were successfully loaded')
         }
-        
-        console.log(`Finished loading all ratings. Total: ${Math.floor(currentRatingsCount / 4)} ratings in ${attemptCount} attempts`);
+
+        console.log(`Finished loading all ratings. Total: ${currentRatingsCount} ratings in ${attemptCount} attempts`);
         
         // Get the page content after all ratings are loaded
         const html = await page.content();

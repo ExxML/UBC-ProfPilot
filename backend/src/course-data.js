@@ -2,7 +2,6 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const { getBrowser, createContext, createPage, navigate, safeClose } = require('./browser');
 const { createAxiosInstance } = require('./axios-config');
-const { checkMemoryUsage } = require('./memory-monitor');
 
 // Create a reusable axios instance with connection pooling for course data scraping
 const axiosInstance = createAxiosInstance('courseData');
@@ -111,15 +110,8 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
             return jsHandle.asElement();
         };
         
-        while (loadMoreVisible && attemptCount < maxAttempts) {
+        while (loadMoreVisible && attemptCount < maxAttempts && currentProfessorsCount < 100) {
             try {
-                // Check memory usage before loading more professors (500 MB limit to leave error margin (512 MB max memory usage))
-                if (checkMemoryUsage(500)) {
-                    console.log('Memory limit reached during professor loading. Skipping to Step 2.');
-                    loadMoreVisible = false;
-                    break;
-                }
-
                 // Quick count of current professors
                 currentProfessorsCount = await page.$$eval("a.TeacherCard__StyledTeacherCard-syjs0d-0", elements => elements.length);
                 
