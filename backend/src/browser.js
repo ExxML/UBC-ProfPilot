@@ -4,9 +4,9 @@ const { webkit } = require('playwright');
 // Single persistent browser config
 const CONFIG = {
   MAX_CONTEXT_POOL_SIZE: 3,  // Context pool for reuse
-  BROWSER_TIMEOUT: 180000,
-  PAGE_TIMEOUT: 180000,
-  NAVIGATION_TIMEOUT: 180000,
+  BROWSER_TIMEOUT: 120000,
+  PAGE_TIMEOUT: 120000,
+  NAVIGATION_TIMEOUT: 120000,
   PRELOAD_CONTEXTS: 1,  // Pre-warm a context
 };
 

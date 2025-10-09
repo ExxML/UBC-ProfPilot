@@ -83,12 +83,12 @@ const ProfessorSearch = () => {
 
   // If no updates from backend for SEARCH_TIMEOUT ms, update progress msg and wait FINAL_SEARCH_TIMEOUT ms before completely timing out
   const FINAL_SEARCH_TIMEOUT = 60000;
-  const SEARCH_TIMEOUT = 180000;
+  const SEARCH_TIMEOUT = 120000;
 
   // Shared timeout handler - eliminates duplication between inactivity and HTTP timeouts
   const createTimeoutHandler = () => {
     return () => {
-      setError(`Request timed out after 4 minutes. The API service likely ran out of memory while loading professor ratings. Try searching a professor with fewer ratings.`);
+      setError(`Request timed out after 3 minutes. The API service likely ran out of memory while loading professor ratings. Try searching a professor with fewer ratings.`);
       setLoading(false);
       setProgress({ percentage: 0, phase: 'timeout', message: 'Request timed out' });
     };
@@ -212,7 +212,7 @@ const ProfessorSearch = () => {
     setLoading(true);
     setError(null);
     setResult(null);
-    setProgress({ percentage: 0, phase: 'url-search', message: 'Initializing API (~1 min)... If >3 mins, reload the page...' });
+    setProgress({ percentage: 0, phase: 'url-search', message: 'Initializing API (1-2 mins)... If >4 mins, try reloading the page...' });
 
     // Clear previous timer references to prevent memory leaks
     if (startTimeRef.current) {
