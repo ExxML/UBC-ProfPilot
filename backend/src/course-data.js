@@ -110,7 +110,7 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
             return jsHandle.asElement();
         };
         
-        while (loadMoreVisible && attemptCount < maxAttempts && currentProfessorsCount < 200) {
+        while (loadMoreVisible && attemptCount < maxAttempts && currentProfessorsCount < 195) {
             try {
                 // Quick count of current professors
                 currentProfessorsCount = await page.$$eval("a.TeacherCard__StyledTeacherCard-syjs0d-0", elements => elements.length);

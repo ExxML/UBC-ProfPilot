@@ -161,7 +161,7 @@ async function getProfData(profURL, callback, progressCallback = null) {
             return jsHandle.asElement();
         };
         
-        while (loadMoreVisible && attemptCount < maxAttempts && currentRatingsCount < 100) {
+        while (loadMoreVisible && attemptCount < maxAttempts && currentRatingsCount < 95) {
             try {
                 // Quick count of current ratings
                 rawRatingsCount = await page.$$eval('[class*="Rating-"], [class*="RatingsList"] > div, [class*="Comments"] > div', elements => elements.length);
