@@ -1,6 +1,4 @@
-import axios from 'axios';
-import http from 'http';
-import https from 'https';
+const axios = require('axios');
 
 // Common axios configuration options
 const COMMON_CONFIG = {
@@ -34,12 +32,12 @@ const AXIOS_PRESETS = {
     courseData: {
         timeout: 15000,
         ...COMMON_CONFIG,
-        httpAgent: new http.Agent(createAgentConfig({
+        httpAgent: new (require('http').Agent)(createAgentConfig({
             maxSockets: 5,
             maxFreeSockets: 2,
             timeout: 15000
         })),
-        httpsAgent: new https.Agent(createAgentConfig({
+        httpsAgent: new (require('https').Agent)(createAgentConfig({
             maxSockets: 5,
             maxFreeSockets: 2,
             timeout: 15000
@@ -50,12 +48,12 @@ const AXIOS_PRESETS = {
     profUrl: {
         timeout: 10000,
         ...COMMON_CONFIG,
-        httpAgent: new http.Agent(createAgentConfig({
+        httpAgent: new (require('http').Agent)(createAgentConfig({
             maxSockets: 10,
             maxFreeSockets: 5,
             timeout: 10000
         })),
-        httpsAgent: new https.Agent(createAgentConfig({
+        httpsAgent: new (require('https').Agent)(createAgentConfig({
             maxSockets: 10,
             maxFreeSockets: 5,
             timeout: 10000
@@ -69,7 +67,7 @@ function createAxiosInstance(preset = 'courseData') {
     return axios.create(config);
 }
 
-export {
+module.exports = {
     createAxiosInstance,
     AXIOS_PRESETS
 };

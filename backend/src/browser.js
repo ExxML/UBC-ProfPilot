@@ -1,6 +1,5 @@
-// Playwright Chromium browser manager
-import { chromium } from 'playwright-core';
-import chromiumBinary from '@sparticuz/chromium';
+// Playwright WebKit browser manager
+const { webkit } = require('playwright');
 
 // Single persistent browser config
 const CONFIG = {
@@ -66,19 +65,14 @@ class BrowserPool {
       }
     }
 
-    // Get correct Chromium path from @sparticuz/chromium
-    const executablePath = await chromiumBinary.executablePath();
-
     // Create persistent browser
-    const browser = await chromium.launch({
-      args: chromiumBinary.args,
-      executablePath: executablePath,
+    const browser = await webkit.launch({
       headless: true,
       timeout: CONFIG.BROWSER_TIMEOUT,
       env: {
         ...process.env,
         NODE_OPTIONS: '--max-old-space-size=255'
-      },
+      }
     });
 
     this.persistentBrowser = browser;
@@ -98,6 +92,9 @@ class BrowserPool {
     if (this.contextPool.length > 0) {
       const context = this.contextPool.pop();
       try {
+        // Quick health check - try to access pages and verify context is usable
+        const pages = await context.pages();
+        
         // Additional check to ensure we can create a new page
         const testPage = await context.newPage();
         await safeClose(testPage, 'test page');
@@ -407,7 +404,7 @@ async function closePersistentBrowser() {
   await browserPool.closePersistentBrowser();
 }
 
-export {
+module.exports = {
   getBrowser,
   createContext,
   createPage,

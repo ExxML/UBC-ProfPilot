@@ -1,8 +1,7 @@
-import { getBrowser, createContext, createPage, navigate, safeClose } from './browser.js';
-import * as cheerio from 'cheerio';
-import OpenAI from 'openai';
-import dotenv from 'dotenv';
-dotenv.config();
+const { getBrowser, createContext, createPage, navigate, safeClose } = require('./browser');
+const cheerio = require('cheerio');
+const OpenAI = require('openai');
+require('dotenv').config();
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -470,4 +469,4 @@ async function getProfData(profURL, callback, progressCallback = null) {
     }
 }
 
-export default getProfData;
+module.exports = getProfData

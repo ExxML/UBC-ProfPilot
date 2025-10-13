@@ -1,7 +1,7 @@
-import axios from 'axios';
-import * as cheerio from 'cheerio';
-import { getBrowser, createContext, createPage, navigate, safeClose } from './browser.js';
-import { createAxiosInstance } from './axios-config.js';
+const axios = require('axios');
+const cheerio = require('cheerio');
+const { getBrowser, createContext, createPage, navigate, safeClose } = require('./browser');
+const { createAxiosInstance } = require('./axios-config');
 
 // Create a reusable axios instance with connection pooling for course data scraping
 const axiosInstance = createAxiosInstance('courseData');
@@ -393,4 +393,4 @@ async function findProfessorsForCourse(courseName, departmentNumber, universityN
     }
 }
 
-export default findProfessorsForCourse;
+module.exports = findProfessorsForCourse;
