@@ -8,7 +8,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const app = express();
 
-const frontendUrl = process.env.FRONTEND_URL
+const frontendUrl = process.env.FRONTEND_URL;
 
 app.use(cors({origin: frontendUrl || 'http://localhost:3000'}));
 
