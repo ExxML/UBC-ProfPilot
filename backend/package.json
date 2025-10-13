@@ -2,10 +2,11 @@
   "name": "ubcprofpilot-backend",
   "version": "1.0",
   "description": "",
-  "main": "index.js",
+  "type": "module",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node index.js",
-    "postinstall": "npx playwright install webkit"
+    "start": "node src/index.js",
+    "postinstall": "npx playwright install chromium"
   },
   "keywords": [],
   "author": "",
@@ -19,5 +20,8 @@
     "openai": "4.104.0",
     "playwright": "1.54.2",
     "socket.io": "4.8.1"
+  },
+  "engines": {
+    "node": "22"
   }
 }

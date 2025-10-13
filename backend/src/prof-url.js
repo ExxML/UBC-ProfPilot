@@ -1,6 +1,6 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
-const { createAxiosInstance } = require('./axios-config');
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+import { createAxiosInstance } from './axios-config.js';
 
 // Create a reusable axios instance with connection pooling for professor URL lookup
 const axiosInstance = createAxiosInstance('profUrl');
@@ -127,4 +127,4 @@ function searchForProf(fname, lname, university, callback, progressCallback = nu
     });
 }
 
-module.exports = searchForProf;
+export default searchForProf;

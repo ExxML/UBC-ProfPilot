@@ -1,5 +1,5 @@
-// Playwright WebKit browser manager
-const { webkit } = require('playwright');
+// Playwright Chromium browser manager
+import { chromium } from 'playwright';
 
 // Single persistent browser config
 const CONFIG = {
@@ -66,13 +66,19 @@ class BrowserPool {
     }
 
     // Create persistent browser
-    const browser = await webkit.launch({
+    const browser = await chromium.launch({
       headless: true,
       timeout: CONFIG.BROWSER_TIMEOUT,
       env: {
         ...process.env,
         NODE_OPTIONS: '--max-old-space-size=255'
-      }
+      },
+      args: [
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--single-process',
+        '--no-zygote',
+      ]
     });
 
     this.persistentBrowser = browser;
@@ -92,9 +98,6 @@ class BrowserPool {
     if (this.contextPool.length > 0) {
       const context = this.contextPool.pop();
       try {
-        // Quick health check - try to access pages and verify context is usable
-        const pages = await context.pages();
-        
         // Additional check to ensure we can create a new page
         const testPage = await context.newPage();
         await safeClose(testPage, 'test page');
@@ -404,7 +407,7 @@ async function closePersistentBrowser() {
   await browserPool.closePersistentBrowser();
 }
 
-module.exports = {
+export {
   getBrowser,
   createContext,
   createPage,

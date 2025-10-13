@@ -1,11 +1,11 @@
-const professorURL = require('./src/prof-url')
-const professorData = require('./src/prof-data')
-const findProfessorsForCourse = require('./src/course-data')
-const { closeBrowser, closePersistentBrowser } = require('./src/browser')
-const express = require('express');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
+import professorURL from './prof-url.js';
+import professorData from './prof-data.js';
+import findProfessorsForCourse from './course-data.js';
+import { closeBrowser, closePersistentBrowser } from './browser.js';
+import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import cors from 'cors';
 const app = express();
 
 const frontendUrl = process.env.FRONTEND_URL;
@@ -292,11 +292,6 @@ app.get('/course', function (req, res) {
     });
 });
 
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-    console.log(`Server running on ${PORT}`);
-});
-
 // Shutdown handling
 const shutdown = async (signal) => {
     console.log(`\nReceived ${signal}. Starting shutdown...`);
@@ -381,4 +376,12 @@ process.on('unhandledRejection', async (reason, promise) => {
     await shutdown('unhandledRejection');
 });
 
-module.exports = app
+// Export app (for Vercel deployment)
+export default app;
+
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`🚀 API listening on http://localhost:${PORT}`);
+  });
+}
