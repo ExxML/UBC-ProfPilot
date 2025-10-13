@@ -381,7 +381,7 @@ export default app;
 
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`🚀 API listening on http://localhost:${PORT}`);
   });
 }
