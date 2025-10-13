@@ -1,5 +1,6 @@
 // Playwright Chromium browser manager
-import { chromium } from 'playwright';
+import { chromium } from 'playwright-core';
+const chromiumBinary = require('@sparticuz/chromium');
 
 // Single persistent browser config
 const CONFIG = {
@@ -65,20 +66,19 @@ class BrowserPool {
       }
     }
 
+    // Get correct Chromium path from @sparticuz/chromium
+    const executablePath = await chromiumBinary.executablePath();
+
     // Create persistent browser
     const browser = await chromium.launch({
+      args: chromiumBinary.args,
+      executablePath: executablePath,
       headless: true,
       timeout: CONFIG.BROWSER_TIMEOUT,
       env: {
         ...process.env,
         NODE_OPTIONS: '--max-old-space-size=255'
       },
-      args: [
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-        '--no-zygote',
-      ]
     });
 
     this.persistentBrowser = browser;

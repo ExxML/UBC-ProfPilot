@@ -6,7 +6,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "postinstall": "npx playwright install chromium"
+    "postinstall": "npx playwright install && npx playwright install-deps"
   },
   "keywords": [],
   "author": "",
