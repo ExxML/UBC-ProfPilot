@@ -1,6 +1,6 @@
 // Playwright Chromium browser manager
 import { chromium } from 'playwright-core';
-const chromiumBinary = require('@sparticuz/chromium');
+import chromiumBinary from '@sparticuz/chromium';
 
 // Single persistent browser config
 const CONFIG = {
