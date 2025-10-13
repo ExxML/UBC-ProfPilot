@@ -138,7 +138,7 @@ const CircularProgress = ({
       </div>
 
       {/* Progress message */}
-      <div className="text-center max-w-xs">
+      <div className="text-center">
         <div className="text-sm font-medium text-gray-900 mb-1">
           {getPhaseTitle(phase)}
         </div>
