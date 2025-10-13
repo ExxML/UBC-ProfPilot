@@ -5,8 +5,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "postinstall": "npx playwright install && npx playwright install-deps"
+    "start": "node src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -18,7 +17,8 @@
     "dotenv": "16.6.1",
     "express": "4.21.2",
     "openai": "4.104.0",
-    "playwright": "1.54.2",
+    "@sparticuz/chromium": "141.0.0",
+    "playwright-core": "1.54.2",
     "socket.io": "4.8.1"
   },
   "engines": {
