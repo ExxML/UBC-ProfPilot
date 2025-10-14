@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 // Add pulsing glow animations
 const glowAnimations = Array.from({ length: 8 }, (_, index) => `

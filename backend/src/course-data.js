@@ -1,4 +1,3 @@
-const axios = require('axios');
 const cheerio = require('cheerio');
 const { getBrowser, createContext, createPage, navigate, safeClose } = require('./browser');
 const { createAxiosInstance } = require('./axios-config');

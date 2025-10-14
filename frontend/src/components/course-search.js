@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { API_BACKEND_URL, DEPARTMENT_MAPPINGS, UNIVERSITY_CONFIG } from '../config.js';
