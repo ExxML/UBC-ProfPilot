@@ -1,5 +1,5 @@
-// Playwright WebKit browser manager
-const { webkit } = require('playwright');
+// Playwright Chromium browser manager
+const { chromium } = require('playwright');
 
 // Single persistent browser config
 const CONFIG = {
@@ -66,8 +66,27 @@ class BrowserPool {
     }
 
     // Create persistent browser
-    const browser = await webkit.launch({
+    const browser = await chromium.launch({
       headless: true,
+      args: [
+        '--disable-dev-shm-usage',
+        '--no-sandbox',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--disable-background-timer-throttling',
+        '--disable-renderer-backgrounding',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-extensions',
+        '--disable-features=site-per-process',
+        '--disable-features=IsolateOrigins',
+        '--disable-breakpad',
+        '--disable-client-side-phishing-detection',
+        '--no-crash-upload',
+        '--no-default-browser-check',
+        '--no-first-run',
+        '--mute-audio',
+        '--single-process',
+      ],
       timeout: CONFIG.BROWSER_TIMEOUT,
       env: {
         ...process.env,
