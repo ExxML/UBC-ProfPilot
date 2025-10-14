@@ -7,7 +7,7 @@ const { createAxiosInstance } = require('./axios-config');
 const axiosInstance = createAxiosInstance('courseData');
 
 // Function to search for all professors in a department at a university
-async function searchProfessorsByDepartment(universityNumber, departmentNumber, callback, progressCallback = null, shouldSkipProfessors = null) {
+async function searchProfessorsByDepartment(universityNumber, departmentNumber, callback, progressCallback = null, shouldSkipProfessorLoad = null) {
     const searchURL = `https://www.ratemyprofessors.com/search/professors/${universityNumber}?q=*&did=${departmentNumber}`;
     console.log(`Fetching URL: ${searchURL}`);
     
@@ -112,8 +112,8 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
         
         while (loadMoreVisible && attemptCount < maxAttempts) { // && currentProfessorsCount < 195) {
             try {
-                // Check if skip was requested
-                if (shouldSkipProfessors && shouldSkipProfessors()) {
+                // Check if skip was requested for professor loading phase
+                if (shouldSkipProfessorLoad && shouldSkipProfessorLoad()) {
                     console.log('Skip signal received, stopping professor load...');
                     loadMoreVisible = false;
                     break;
@@ -326,7 +326,7 @@ async function getNumCourseRatings(profURL, courseCode) {
 }
 
 // Main function to find professors with ratings for a specific course
-async function findProfessorsForCourse(courseName, departmentNumber, universityNumber, callback, progressCallback = null, shouldSkipProfessors = null) {
+async function findProfessorsForCourse(courseName, departmentNumber, universityNumber, callback, progressCallback = null, shouldSkipProfessorLoad = null, shouldSkipCourseCheck = null) {
     console.log(`\nSearching for professors with ratings for ${courseName} in department ${departmentNumber} at university ${universityNumber}`);
     const timerLabel = `Total Course Search Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     console.time(timerLabel);
@@ -357,8 +357,8 @@ async function findProfessorsForCourse(courseName, departmentNumber, universityN
             // Process professors sequentially to avoid overwhelming the server
             for (const professor of professors) {
                 try {
-                    // Check if skip was requested
-                    if (shouldSkipProfessors && shouldSkipProfessors()) {
+                    // Check if skip was requested for course checking phase
+                    if (shouldSkipCourseCheck && shouldSkipCourseCheck()) {
                         console.log('Skip signal received, stopping course check...');
                         break;
                     }
@@ -400,7 +400,7 @@ async function findProfessorsForCourse(courseName, departmentNumber, universityN
             }
             
             callback(null, professorsWithCourse);
-        }, progressCallback, shouldSkipProfessors);
+        }, progressCallback, shouldSkipProfessorLoad);
         
     } catch (error) {
         console.error('Error in findProfessorsForCourse:', error.message);
