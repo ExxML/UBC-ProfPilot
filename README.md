@@ -48,9 +48,9 @@ UBC-ProfPilot/
 │   ├── src/
 │   │   ├── browser.js      # Browser automation logic
 │   │   ├── course-data.js  # Course data handling
+│   │   ├── index.js        # Server entry point
 │   │   ├── prof-data.js    # Professor data handling
 │   │   └── prof-url.js     # Professor URL management
-│   ├── index.js            # Server entry point
 │   └── Dockerfile          # Docker configuration
 ```
 

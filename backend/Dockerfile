@@ -19,4 +19,4 @@ RUN npx playwright install webkit
 COPY . .
 
 # Start command: run Node directly so PID 1 is Node (avoids npm SIGTERM noise on Render)
-CMD ["node", "index.js"]
+CMD ["node", "src/index.js"]
