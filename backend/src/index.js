@@ -45,34 +45,6 @@ io.on('connection', (socket) => {
 
     // Track client connection
     connectedClients.add(socket.id);
-
-    // Set up heartbeat monitoring for reliable disconnection detection
-    const HEARTBEAT_TIMEOUT = 30000; // 30 seconds
-    let heartbeatTimeout;
-
-    // Monitor connection heartbeat
-    const resetHeartbeatTimeout = () => {
-        if (heartbeatTimeout) {
-            clearTimeout(heartbeatTimeout);
-        }
-        heartbeatTimeout = setTimeout(() => {
-            console.log(`No heartbeat from client ${socket.id} for ${HEARTBEAT_TIMEOUT}ms, forcing socket disconnect`);
-            socket.disconnect(true); // Force disconnect
-        }, HEARTBEAT_TIMEOUT);
-    };
-
-    // Listen for heartbeat events
-    socket.conn.on('heartbeat', () => {
-        resetHeartbeatTimeout();
-    });
-
-    // Also listen for packet events (any activity)
-    socket.conn.on('packet', () => {
-        resetHeartbeatTimeout();
-    });
-
-    // Initial heartbeat timeout setup
-    resetHeartbeatTimeout();
     
     socket.on('start-professor-search', (data) => {
         const { fname, lname, university, sessionId } = data;
@@ -163,11 +135,6 @@ io.on('connection', (socket) => {
     
     socket.on('disconnect', async () => {
         console.log('Client disconnected:', socket.id);
-
-        // Clear heartbeat timeout
-        if (heartbeatTimeout) {
-            clearTimeout(heartbeatTimeout);
-        }
 
         // Remove from client tracking
         connectedClients.delete(socket.id);
