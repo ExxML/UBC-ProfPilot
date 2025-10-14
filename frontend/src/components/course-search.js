@@ -20,10 +20,12 @@ const CourseSearch = () => {
   const timeoutRef = useRef(null);
   const inactivityTimeoutRef = useRef(null);
   const lastMessageTimeRef = useRef(null);
+  const initTimeoutRef = useRef(null);
 
   // If no updates from backend for SEARCH_TIMEOUT ms, update progress msg and wait FINAL_SEARCH_TIMEOUT ms before completely timing out
   const FINAL_SEARCH_TIMEOUT = 60000;
   const SEARCH_TIMEOUT = 120000;
+  const INIT_TIMEOUT = 240000; // 4 minutes for initialization
 
   // Shared timeout handler - eliminates duplication between inactivity and HTTP timeouts
   const createTimeoutHandler = () => {
@@ -31,6 +33,15 @@ const CourseSearch = () => {
       setError(`Request timed out after 3 minutes. The API service likely ran out of memory while loading course professors. Try searching a course with fewer professors.`);
       setLoading(false);
       setProgress({ percentage: 0, phase: 'timeout', message: 'Request timed out' });
+    };
+  };
+
+  // Initialization timeout handler - triggers after 4 minutes with no response
+  const createInitTimeoutHandler = () => {
+    return () => {
+      setError(`API initialization timed out after 4 minutes. The service may be unresponsive. Please try reloading the page.`);
+      setLoading(false);
+      setProgress({ percentage: 0, phase: 'error', message: 'Initialization timeout - no response from API' });
     };
   };
 
@@ -64,6 +75,12 @@ const CourseSearch = () => {
         timeoutRef.current = null;
       }
 
+      // Clear initialization timeout since we got a response
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
+
       // Update last message time and reset inactivity timer
       lastMessageTimeRef.current = Date.now();
       if (inactivityTimeoutRef.current) {
@@ -85,7 +102,7 @@ const CourseSearch = () => {
       setLoading(false);
       setProgress({ percentage: 100, phase: 'complete', message: 'Course search complete!' });
 
-      // Clear both timeout timers
+      // Clear all timeout timers
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
@@ -93,6 +110,10 @@ const CourseSearch = () => {
       if (inactivityTimeoutRef.current) {
         clearTimeout(inactivityTimeoutRef.current);
         inactivityTimeoutRef.current = null;
+      }
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
       }
     };
 
@@ -101,7 +122,7 @@ const CourseSearch = () => {
       setLoading(false);
       setProgress({ percentage: 0, phase: 'error', message: 'Course search failed' });
 
-      // Clear both timeout timers
+      // Clear all timeout timers
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
@@ -109,6 +130,10 @@ const CourseSearch = () => {
       if (inactivityTimeoutRef.current) {
         clearTimeout(inactivityTimeoutRef.current);
         inactivityTimeoutRef.current = null;
+      }
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
       }
     };
 
@@ -135,6 +160,10 @@ const CourseSearch = () => {
       if (inactivityTimeoutRef.current) {
         clearTimeout(inactivityTimeoutRef.current);
         inactivityTimeoutRef.current = null;
+      }
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
       }
     };
   }, [handleInactivityTimeout]);
@@ -166,8 +195,15 @@ const CourseSearch = () => {
       clearTimeout(inactivityTimeoutRef.current);
       inactivityTimeoutRef.current = null;
     }
+    if (initTimeoutRef.current) {
+      clearTimeout(initTimeoutRef.current);
+      initTimeoutRef.current = null;
+    }
     startTimeRef.current = performance.now();
     setSearchDurationMs(null);
+
+    // Set initialization timeout (4 minutes)
+    initTimeoutRef.current = setTimeout(createInitTimeoutHandler(), INIT_TIMEOUT);
 
     if (socketRef.current) {
       // For WebSocket: Initialize last message time to start inactivity detection
@@ -196,7 +232,7 @@ const CourseSearch = () => {
         const end = performance.now();
         setSearchDurationMs(end - (startTimeRef.current || end));
 
-        // Clear both timeout timers
+        // Clear all timeout timers
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
           timeoutRef.current = null;
@@ -204,12 +240,16 @@ const CourseSearch = () => {
         if (inactivityTimeoutRef.current) {
           clearTimeout(inactivityTimeoutRef.current);
           inactivityTimeoutRef.current = null;
+        }
+        if (initTimeoutRef.current) {
+          clearTimeout(initTimeoutRef.current);
+          initTimeoutRef.current = null;
         }
       } catch (err) {
         setError(err.response?.data?.error || err.message);
         setProgress({ percentage: 0, phase: 'error', message: 'Course search failed' });
 
-        // Clear both timeout timers
+        // Clear all timeout timers
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
           timeoutRef.current = null;
@@ -217,6 +257,10 @@ const CourseSearch = () => {
         if (inactivityTimeoutRef.current) {
           clearTimeout(inactivityTimeoutRef.current);
           inactivityTimeoutRef.current = null;
+        }
+        if (initTimeoutRef.current) {
+          clearTimeout(initTimeoutRef.current);
+          initTimeoutRef.current = null;
         }
       } finally {
         setLoading(false);
