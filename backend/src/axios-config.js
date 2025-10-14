@@ -1,20 +1,24 @@
 const axios = require('axios');
 
-// Common axios configuration options
 const COMMON_CONFIG = {
     maxRedirects: 3,
     maxContentLength: 50000000, // 50MB limit
     maxBodyLength: 50000000,
+    decompress: true,
+    validateStatus: (status) => status < 500, // Accept all responses < 500 to avoid retries
+    httpVersion: '2.0', // Enable HTTP/2 support if available
 };
 
 // Agent configuration factory function
 function createAgentConfig(options = {}) {
     const {
         keepAlive = true,
-        maxSockets = 5,
-        maxFreeSockets = 2,
-        timeout = 15000,
-        freeSocketTimeout = 30000
+        maxSockets = 50,
+        maxFreeSockets = 10,
+        timeout = 10000,
+        freeSocketTimeout = 15000,
+        keepAliveMsecs = 1000,
+        scheduling = 'lifo' // LIFO scheduling for better socket reuse
     } = options;
 
     return {
@@ -22,41 +26,43 @@ function createAgentConfig(options = {}) {
         maxSockets,
         maxFreeSockets,
         timeout,
-        freeSocketTimeout
+        freeSocketTimeout,
+        keepAliveMsecs,
+        scheduling
     };
 }
 
 // Predefined configurations for different use cases
 const AXIOS_PRESETS = {
-    // Configuration for course data scraping (moderate rate)
+    // Configuration for course data scraping (optimized for high concurrency)
     courseData: {
-        timeout: 15000,
-        ...COMMON_CONFIG,
-        httpAgent: new (require('http').Agent)(createAgentConfig({
-            maxSockets: 5,
-            maxFreeSockets: 2,
-            timeout: 15000
-        })),
-        httpsAgent: new (require('https').Agent)(createAgentConfig({
-            maxSockets: 5,
-            maxFreeSockets: 2,
-            timeout: 15000
-        }))
-    },
-
-    // Configuration for professor URL lookup (faster rate)
-    profUrl: {
         timeout: 10000,
         ...COMMON_CONFIG,
         httpAgent: new (require('http').Agent)(createAgentConfig({
-            maxSockets: 10,
-            maxFreeSockets: 5,
+            maxSockets: 50,
+            maxFreeSockets: 10,
             timeout: 10000
         })),
         httpsAgent: new (require('https').Agent)(createAgentConfig({
-            maxSockets: 10,
-            maxFreeSockets: 5,
+            maxSockets: 50,
+            maxFreeSockets: 10,
             timeout: 10000
+        }))
+    },
+
+    // Configuration for professor URL lookup (optimized for speed)
+    profUrl: {
+        timeout: 8000,
+        ...COMMON_CONFIG,
+        httpAgent: new (require('http').Agent)(createAgentConfig({
+            maxSockets: 100,
+            maxFreeSockets: 20,
+            timeout: 8000
+        })),
+        httpsAgent: new (require('https').Agent)(createAgentConfig({
+            maxSockets: 100,
+            maxFreeSockets: 20,
+            timeout: 8000
         }))
     }
 };
