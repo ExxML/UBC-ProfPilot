@@ -159,8 +159,12 @@ const ProfessorSearch = () => {
       setResult(data);
       const end = performance.now();
       setSearchDurationMs(end - (startTimeRef.current || end));
-      setLoading(false);
       setProgress({ percentage: 100, phase: 'complete', message: 'Search complete!' });
+
+      // Keep loading true to show complete progress
+      setTimeout(() => {
+        setLoading(false);
+      }, 2000);
 
       // Clear all timeout timers
       if (timeoutRef.current) {
@@ -276,10 +280,11 @@ const ProfessorSearch = () => {
         sessionId: sessionIdRef.current
       });
     } else {
-      // For HTTP: Set up timeout immediately since no progress updates
+      // If WebSocket unavailable
+      // Set up timeout since no progress updates from socket
       timeoutRef.current = setTimeout(createTimeoutHandler(), SEARCH_TIMEOUT + FINAL_SEARCH_TIMEOUT);
 
-      // Fallback to direct HTTP request if WebSocket is not available
+      // Fallback to direct HTTP request
       try {
         const response = await axios.get(`${API_BACKEND_URL}/professor`, {
           params: {
@@ -292,6 +297,11 @@ const ProfessorSearch = () => {
         setProgress({ percentage: 100, phase: 'complete', message: 'Search complete!' });
         const end = performance.now();
         setSearchDurationMs(end - (startTimeRef.current || end));
+
+        // Keep loading true to show complete progress
+        setTimeout(() => {
+          setLoading(false);
+        }, 2000);
 
         // Clear all timeout timers
         if (timeoutRef.current) {
@@ -426,7 +436,7 @@ const ProfessorSearch = () => {
       )}
 
       {/* Results */}
-      {result && (
+      {!loading && result && (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="bg-primary-50 px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-medium text-gray-900">Professor Information</h3>
