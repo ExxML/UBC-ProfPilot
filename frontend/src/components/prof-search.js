@@ -386,9 +386,6 @@ const ProfessorSearch = () => {
           <p className="text-sm text-gray-800">
             Search for any professor at UBC to get an AI summary of all their ratings from RateMyProfessors!
           </p>
-          <p className="text-sm text-gray-500 mt-1">
-            Due to API service limits, only the first 100 ratings will be loaded.
-          </p>
         </div>
 
         <button
