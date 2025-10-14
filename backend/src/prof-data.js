@@ -71,7 +71,7 @@ async function summarizeRatings(ratings) {
     }
 }
 
-async function getProfData(profURL, callback, progressCallback = null) {
+async function getProfData(profURL, callback, progressCallback = null, shouldSkipRatings = null) {
     console.log(`Making request to: ${profURL}`);
     const totalTimerLabel = `Total Professor Data Search Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     console.time(totalTimerLabel);
@@ -163,6 +163,13 @@ async function getProfData(profURL, callback, progressCallback = null) {
         
         while (loadMoreVisible && attemptCount < maxAttempts) { // && currentRatingsCount < 95) {
             try {
+                // Check if skip was requested
+                if (shouldSkipRatings && shouldSkipRatings()) {
+                    console.log('Skip signal received, stopping ratings load...');
+                    loadMoreVisible = false;
+                    break;
+                }
+                
                 // Quick count of current ratings
                 rawRatingsCount = await page.$$eval('[class*="Rating-"], [class*="RatingsList"] > div, [class*="Comments"] > div', elements => elements.length);
 

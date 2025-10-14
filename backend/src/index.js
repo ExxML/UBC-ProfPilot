@@ -23,6 +23,8 @@ const io = new Server(server, {
 // Store active connections by session ID with cleanup tracking
 const activeConnections = new Map();
 const connectionTimestamps = new Map();
+const skipRatingsSignals = new Map(); // Track skip signals by session ID
+const skipProfessorsSignals = new Map(); // Track skip signals for course professor loading
 const CONNECTION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 // Track connected clients for auto-shutdown
@@ -50,10 +52,16 @@ io.on('connection', (socket) => {
         const { fname, lname, university, sessionId } = data;
         activeConnections.set(sessionId, socket.id);
         connectionTimestamps.set(sessionId, Date.now());
+        skipRatingsSignals.delete(sessionId); // Clear any previous skip signal
         
         // Emit progress updates
         const emitProgress = (phase, percentage, message) => {
             socket.emit('search-progress', { phase, percentage, message });
+        };
+        
+        // Function to check if skip was requested
+        const shouldSkipRatings = () => {
+            return skipRatingsSignals.get(sessionId) === true;
         };
         
         emitProgress('url-search', 10, 'Searching for professor profile...');
@@ -90,18 +98,33 @@ io.on('connection', (socket) => {
                     ratings: data.ratings,
                     summary: data.summary
                 });
-            }, emitProgress);
+                
+                // Clean up skip signal after search completes
+                skipRatingsSignals.delete(sessionId);
+            }, emitProgress, shouldSkipRatings);
         }, emitProgress);
+    });
+    
+    socket.on('skip-ratings-load', (data) => {
+        const { sessionId } = data;
+        console.log(`Skip ratings signal received for session: ${sessionId}`);
+        skipRatingsSignals.set(sessionId, true);
     });
     
     socket.on('start-course-search', (data) => {
         const { course_name, department_number, university_number, sessionId } = data;
         activeConnections.set(sessionId, socket.id);
         connectionTimestamps.set(sessionId, Date.now());
+        skipProfessorsSignals.delete(sessionId); // Clear any previous skip signal
         
         // Emit progress updates
         const emitProgress = (phase, percentage, message) => {
             socket.emit('course-search-progress', { phase, percentage, message });
+        };
+        
+        // Function to check if skip was requested
+        const shouldSkipProfessors = () => {
+            return skipProfessorsSignals.get(sessionId) === true;
         };
         
         emitProgress('department-load', 5, 'Starting course search...');
@@ -130,7 +153,16 @@ io.on('connection', (socket) => {
                     num_ratings: prof.numRatings
                 }))
             });
-        }, emitProgress);
+            
+            // Clean up skip signal after search completes
+            skipProfessorsSignals.delete(sessionId);
+        }, emitProgress, shouldSkipProfessors);
+    });
+    
+    socket.on('skip-professors-load', (data) => {
+        const { sessionId } = data;
+        console.log(`Skip professors signal received for session: ${sessionId}`);
+        skipProfessorsSignals.set(sessionId, true);
     });
     
     socket.on('disconnect', async () => {

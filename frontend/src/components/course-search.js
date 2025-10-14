@@ -180,6 +180,16 @@ const CourseSearch = () => {
     }));
   };
 
+  const handleSkipProfessors = () => {
+    if (socketRef.current && sessionIdRef.current) {
+      console.log(`Skipping ${progress.phase} phase...`);
+      socketRef.current.emit('skip-professors-load', {
+        sessionId: sessionIdRef.current,
+        phase: progress.phase
+      });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -351,7 +361,7 @@ const CourseSearch = () => {
 
       {/* Progress Bar */}
       {loading && (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden relative">
           <div className="bg-primary-50 px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-medium text-gray-900">Searching Course</h3>
           </div>
@@ -366,6 +376,18 @@ const CourseSearch = () => {
               searchType="course"
             />
           </div>
+          {/* Skip Button - Only show during professor-load or course-check phases */}
+          {(progress.phase === 'professor-load' || progress.phase === 'course-check') && (
+            <div className="absolute bottom-4 right-4">
+              <button
+                onClick={handleSkipProfessors}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200 shadow-md"
+                title="Display course professors now"
+              >
+                Skip Loading
+              </button>
+            </div>
+          )}
         </div>
       )}
 

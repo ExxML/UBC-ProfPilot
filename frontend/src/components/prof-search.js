@@ -240,6 +240,15 @@ const ProfessorSearch = () => {
     }));
   };
 
+  const handleSkipRatings = () => {
+    if (socketRef.current && sessionIdRef.current) {
+      console.log('Skipping remaining ratings...');
+      socketRef.current.emit('skip-ratings-load', {
+        sessionId: sessionIdRef.current
+      });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -399,7 +408,7 @@ const ProfessorSearch = () => {
 
       {/* Progress Bar */}
       {loading && (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden relative">
           <div className="bg-primary-50 px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-medium text-gray-900">Searching Professor</h3>
           </div>
@@ -414,6 +423,18 @@ const ProfessorSearch = () => {
               searchType="professor"
             />
           </div>
+          {/* Skip Button - Only show during ratings-load phase */}
+          {progress.phase === 'ratings-load' && (
+            <div className="absolute bottom-4 right-4">
+              <button
+                onClick={handleSkipRatings}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200 shadow-md"
+                title="Generate AI summary now"
+              >
+                Skip Loading
+              </button>
+            </div>
+          )}
         </div>
       )}
 
