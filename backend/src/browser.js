@@ -7,7 +7,7 @@ const CONFIG = {
   BROWSER_TIMEOUT: 120000,
   PAGE_TIMEOUT: 120000,
   NAVIGATION_TIMEOUT: 120000,
-  PRELOAD_CONTEXTS: 1,  // Pre-warm a context
+  PRELOAD_CONTEXTS: 2,  // Pre-warm contexts
 };
 
 // Helper function to safely close resources by checking if they're already closed first
@@ -65,33 +65,45 @@ class BrowserPool {
       }
     }
 
-    // Create persistent browser
+    // Create persistent browser with optimized launch args
     const browser = await chromium.launch({
       headless: true,
       args: [
         '--disable-dev-shm-usage',
         '--no-sandbox',
+        '--disable-setuid-sandbox',
         '--disable-gpu',
         '--disable-software-rasterizer',
         '--disable-background-timer-throttling',
         '--disable-renderer-backgrounding',
         '--disable-backgrounding-occluded-windows',
         '--disable-extensions',
-        '--disable-features=site-per-process',
-        '--disable-features=IsolateOrigins',
+        '--disable-component-extensions-with-background-pages',
+        '--disable-default-apps',
+        '--disable-features=site-per-process,IsolateOrigins,TranslateUI',
         '--disable-breakpad',
         '--disable-client-side-phishing-detection',
+        '--disable-sync',
+        '--disable-notifications',
+        '--disable-offer-store-unmasked-wallet-cards',
+        '--disable-speech-api',
+        '--hide-scrollbars',
+        '--metrics-recording-only',
         '--no-crash-upload',
         '--no-default-browser-check',
         '--no-first-run',
         '--mute-audio',
-        '--single-process',
+        '--no-pings',
+        '--password-store=basic',
+        '--use-mock-keychain',
+        '--disable-blink-features=AutomationControlled',
+        // Memory optimizations
+        '--disable-features=CalculateNativeWinOcclusion',
+        '--renderer-process-limit=2',
+        '--max-old-space-size=512',
       ],
       timeout: CONFIG.BROWSER_TIMEOUT,
-      env: {
-        ...process.env,
-        NODE_OPTIONS: '--max-old-space-size=255'
-      }
+      chromiumSandbox: false,
     });
 
     this.persistentBrowser = browser;
@@ -99,15 +111,25 @@ class BrowserPool {
     
     // Set up browser-level optimizations
     browser.on('disconnected', () => {
-      console.log('Browser disconnected, clearing persistent reference');
+      console.log('Browser disconnected, clearing persistent reference and context pool');
       this.persistentBrowser = null;
+      // Clear context pool since all contexts are now invalid
+      this.contextPool.length = 0;
     });
     
     return browser;
   }
 
   async createContext(browser) {
-        // Try to reuse context from pool first
+    // Verify browser is still connected before creating context
+    try {
+      await browser.version();
+    } catch (error) {
+      console.warn('Browser disconnected, cannot create context:', error.message);
+      throw new Error('Browser is not connected');
+    }
+
+    // Try to reuse context from pool first
     if (this.contextPool.length > 0) {
       const context = this.contextPool.pop();
       try {
@@ -130,29 +152,32 @@ class BrowserPool {
 
     const context = await browser.newContext({
       // Minimal context configuration for maximum performance
-      userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',  // Shorter UA
-      viewport: { width: 426, height: 240 },  // Smaller viewport
+      userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
+      viewport: { width: 320, height: 240 },  // Minimal viewport for faster rendering
       deviceScaleFactor: 1,
       serviceWorkers: 'block',
       reducedMotion: 'reduce',
       forcedColors: 'none',
       colorScheme: 'light',
-      permissions: [],  // Block all permissions
+      permissions: [],
       httpCredentials: undefined,
       ignoreHTTPSErrors: true,
       bypassCSP: true,
       acceptDownloads: false,
       strictSelectors: false,
-      javaScriptEnabled: true,  // Keep JS for scraping
+      javaScriptEnabled: true,
       offline: false,
-      timezoneId: undefined,  // Use system timezone
-      locale: undefined,  // Use system locale
+      timezoneId: undefined,
+      locale: undefined,
+      hasTouch: false,
+      isMobile: false,
       extraHTTPHeaders: {
-        'Accept': 'text/html',  // Minimal accept header
-        'Accept-Language': 'en',
-        'Accept-Encoding': 'gzip, deflate',
-        'Cache-Control': 'no-cache',
-        'DNT': '1'
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'max-age=0',
+        'DNT': '1',
+        'Connection': 'keep-alive'
       }
     });
 
@@ -163,32 +188,26 @@ class BrowserPool {
       const url = request.url();
       
       try {
-        const hostname = new URL(url).hostname;
-        const isRateMyProf = /(^|\.)ratemyprofessors\.com$/i.test(hostname);
-        
-        // Immediate abort for non-essential domains
-        if (!isRateMyProf) {
-          return route.abort('blockedbyclient');
-        }
-        
-        // Block all non-essential resource types
+        // Block all non-essential resource types immediately (fastest check)
         if (['image', 'stylesheet', 'font', 'media', 'websocket', 'manifest', 'eventsource', 'other'].includes(type)) {
           return route.abort('blockedbyclient');
         }
         
-        // Block analytics, ads, tracking - expanded list
-        const blockPatterns = [
-          'analytics', 'tracking', 'ads', 'facebook', 'google-analytics', 'doubleclick',
-          'googlesyndication', 'googletagmanager', 'hotjar', 'mixpanel', 'segment',
-          'amplitude', 'intercom', 'zendesk', 'twitter', 'linkedin', 'pinterest',
-          'instagram', 'tiktok', 'snapchat', 'reddit', 'youtube', 'vimeo',
-          'cloudflare', 'jsdelivr', 'cdnjs', 'unpkg', 'bootstrapcdn'
-        ];
+        const hostname = new URL(url).hostname;
+        const isRateMyProf = hostname.endsWith('ratemyprofessors.com') || hostname === 'ratemyprofessors.com';
         
-        if (blockPatterns.some(pattern => url.toLowerCase().includes(pattern))) {
+        // Immediate abort for non-RateMyProfessors domains
+        if (!isRateMyProf) {
           return route.abort('blockedbyclient');
         }
         
+        // Fast path check for common blocked patterns using single regex
+        const urlLower = url.toLowerCase();
+        if (/analytics|tracking|ads|facebook|google-analytics|doubleclick|googlesyndication|googletagmanager|hotjar|mixpanel|segment|amplitude|intercom|zendesk|twitter|linkedin|pinterest|instagram|tiktok|snapchat|reddit|youtube|vimeo/.test(urlLower)) {
+          return route.abort('blockedbyclient');
+        }
+        
+        // Allow the request
         route.continue();
       } catch (error) {
         route.abort('blockedbyclient');
@@ -380,8 +399,26 @@ async function createPage(context) {
   await page.setDefaultTimeout(CONFIG.PAGE_TIMEOUT);
   await page.setDefaultNavigationTimeout(CONFIG.NAVIGATION_TIMEOUT);
   
-  // Disable unnecessary features
-  await page.setViewportSize({ width: 426, height: 240 });
+  // Minimal viewport for faster rendering
+  await page.setViewportSize({ width: 320, height: 240 });
+  
+  // Disable animations and transitions for faster page interactions
+  await page.addInitScript(() => {
+    // Disable CSS animations and transitions
+    const style = document.createElement('style');
+    style.textContent = '* { animation-duration: 0s !important; transition-duration: 0s !important; }';
+    document.head.appendChild(style);
+    
+    // Override setTimeout and setInterval for faster execution
+    const originalSetTimeout = window.setTimeout;
+    const originalSetInterval = window.setInterval;
+    window.setTimeout = function(fn, delay, ...args) {
+      return originalSetTimeout(fn, Math.min(delay, 10), ...args);
+    };
+    window.setInterval = function(fn, delay, ...args) {
+      return originalSetInterval(fn, Math.min(delay, 10), ...args);
+    };
+  });
   
   return page;
 }
@@ -390,9 +427,12 @@ async function navigate(page, url) {
   try {
     // Ultra-fast navigation with minimal waiting
     const response = await page.goto(url, {
-      waitUntil: 'domcontentloaded', // Don't wait for all resources
+      waitUntil: 'commit', // Don't wait for 'domcontentloaded', 'commit' is faster
       timeout: CONFIG.NAVIGATION_TIMEOUT
     });
+    
+    // Wait for minimal DOM readiness
+    await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
     
     // Immediately stop loading to prevent additional resources
     await page.evaluate(() => {
