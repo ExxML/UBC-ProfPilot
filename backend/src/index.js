@@ -293,7 +293,7 @@ app.get('/course', function (req, res) {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running on ${PORT}`);
 });
 
