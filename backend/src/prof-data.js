@@ -161,7 +161,7 @@ async function getProfData(profURL, callback, progressCallback = null) {
             return jsHandle.asElement();
         };
         
-        while (loadMoreVisible && attemptCount < maxAttempts && currentRatingsCount < 95) {
+        while (loadMoreVisible && attemptCount < maxAttempts) { // && currentRatingsCount < 95) {
             try {
                 // Quick count of current ratings
                 rawRatingsCount = await page.$$eval('[class*="Rating-"], [class*="RatingsList"] > div, [class*="Comments"] > div', elements => elements.length);
@@ -259,6 +259,9 @@ async function getProfData(profURL, callback, progressCallback = null) {
             console.log('WARNING: Not all ratings were successfully loaded')
         }
 
+        // Get updated count of current ratings
+        rawRatingsCount = await page.$$eval('[class*="Rating-"], [class*="RatingsList"] > div, [class*="Comments"] > div', elements => elements.length);
+        currentRatingsCount = Math.floor(rawRatingsCount / 4);
         console.log(`Finished loading all ratings. Total: ${currentRatingsCount} ratings in ${attemptCount} attempts`);
         
         // Get the page content after all ratings are loaded

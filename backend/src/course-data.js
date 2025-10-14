@@ -110,7 +110,7 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
             return jsHandle.asElement();
         };
         
-        while (loadMoreVisible && attemptCount < maxAttempts && currentProfessorsCount < 195) {
+        while (loadMoreVisible && attemptCount < maxAttempts) { // && currentProfessorsCount < 195) {
             try {
                 // Quick count of current professors
                 currentProfessorsCount = await page.$$eval("a.TeacherCard__StyledTeacherCard-syjs0d-0", elements => elements.length);
@@ -207,6 +207,8 @@ async function searchProfessorsByDepartment(universityNumber, departmentNumber, 
             console.log('WARNING: Not all professors were successfully loaded')
         }
         
+        // Get updated count of current professors
+        currentProfessorsCount = await page.$$eval("a.TeacherCard__StyledTeacherCard-syjs0d-0", elements => elements.length);
         console.log(`Finished loading all professors. Total: ${currentProfessorsCount} professors in ${attemptCount} attempts`);
         
         // Get the page content after all professors are loaded
