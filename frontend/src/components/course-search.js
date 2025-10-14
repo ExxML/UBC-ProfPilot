@@ -53,7 +53,7 @@ const CourseSearch = () => {
 
   // Initialize WebSocket connection
   useEffect(() => {
-    const backendUrl = API_BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = API_BACKEND_URL;
     socketRef.current = io(backendUrl, {
       // Add connection options to prevent memory leaks
       autoConnect: true,
