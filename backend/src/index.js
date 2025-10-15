@@ -20,9 +20,9 @@ const io = new Server(server, {
     }
 });
 
-// Store active connections by session ID with cleanup tracking
-const activeConnections = new Map();
-const connectionTimestamps = new Map();
+// Store active connections with socket ID mapped to session ID
+const activeConnections = new Map(); // socketId -> sessionId
+const connectionTimestamps = new Map(); // sessionId -> timestamp
 const skipRatingsSignals = new Map(); // Track skip signals by session ID
 const skipProfessorLoadSignals = new Map(); // Track skip signals for course professor loading phase
 const skipCourseCheckSignals = new Map(); // Track skip signals for course checking phase
@@ -37,7 +37,13 @@ const cleanupInterval = setInterval(() => {
     const now = Date.now();
     for (const [sessionId, timestamp] of connectionTimestamps.entries()) {
         if (now - timestamp > CONNECTION_TIMEOUT) {
-            activeConnections.delete(sessionId);
+            // Find which socket this session belongs to and remove it
+            for (const [socketId, activeSessionId] of activeConnections.entries()) {
+                if (activeSessionId === sessionId) {
+                    activeConnections.delete(socketId);
+                    break;
+                }
+            }
             connectionTimestamps.delete(sessionId);
             console.log(`Cleaned up stale connection: ${sessionId}`);
         }
@@ -52,7 +58,10 @@ io.on('connection', (socket) => {
     
     socket.on('start-professor-search', (data) => {
         const { fname, lname, university, sessionId } = data;
-        activeConnections.set(sessionId, socket.id);
+
+        // Track this socket's active session
+        activeConnections.set(socket.id, sessionId);
+
         connectionTimestamps.set(sessionId, Date.now());
         skipRatingsSignals.delete(sessionId); // Clear any previous skip signal
         stopSearchSignals.delete(sessionId); // Clear any previous stop signal
@@ -95,6 +104,10 @@ io.on('connection', (socket) => {
                     return;
                 }
                 
+                if (shouldStopSearch()) {
+                    return;
+                }
+                
                 socket.emit('search-complete', {
                     URL: urlResponse.URL,
                     first_name: urlResponse.lname,  // First/last names are swapped
@@ -122,7 +135,10 @@ io.on('connection', (socket) => {
     
     socket.on('start-course-search', (data) => {
         const { course_name, department_number, university_number, sessionId } = data;
-        activeConnections.set(sessionId, socket.id);
+
+        // Track socket's active session
+        activeConnections.set(socket.id, sessionId);
+
         connectionTimestamps.set(sessionId, Date.now());
         skipProfessorLoadSignals.delete(sessionId); // Clear any previous skip signals
         skipCourseCheckSignals.delete(sessionId);
@@ -161,6 +177,10 @@ io.on('connection', (socket) => {
                     error: 'Error searching for course professors',
                     details: error.message
                 });
+                return;
+            }
+        
+            if (shouldStopSearch()) {
                 return;
             }
             
@@ -211,13 +231,15 @@ io.on('connection', (socket) => {
         // Remove from client tracking
         connectedClients.delete(socket.id);
 
-        // Remove from active connections and timestamps
-        for (let [sessionId, socketId] of activeConnections.entries()) {
-            if (socketId === socket.id) {
-                activeConnections.delete(sessionId);
-                connectionTimestamps.delete(sessionId);
-                break;
-            }
+        // Stop active session of the socket
+        const sessionId = activeConnections.get(socket.id);
+        if (sessionId) {
+            console.log(`Terminating active search ${sessionId} for disconnected client`);
+            stopSearchSignals.set(sessionId, true);
+
+            // Remove from tracking maps
+            activeConnections.delete(socket.id);
+            connectionTimestamps.delete(sessionId);
         }
 
         // Report number of clients still connected
