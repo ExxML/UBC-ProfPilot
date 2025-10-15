@@ -106,7 +106,7 @@ const ProfessorSearch = () => {
         university: UNIVERSITY_CONFIG.name,
         phase: 'url-search'
       },
-      'Initializing API (1-2 mins)... If >4 mins, try reloading the page...'
+      'Initializing API (~2 mins)... If >4 mins, please reload the page and try again.'
     );
   };
 

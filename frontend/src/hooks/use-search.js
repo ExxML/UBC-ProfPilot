@@ -51,7 +51,7 @@ export const useSearch = (config) => {
 
   const createInitTimeoutHandler = useCallback(() => {
     return () => {
-      setError(`API initialization timed out after 4 minutes. The service may be unresponsive. Please try reloading the page.`);
+      setError(`API initialization timed out after 4 minutes; the service may be experiencing an outage. Please reload the page and try again.`);
       setLoading(false);
       setProgress({ percentage: 0, phase: 'error', message: 'Initialization timeout - no response from API' });
     };

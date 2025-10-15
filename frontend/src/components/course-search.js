@@ -46,7 +46,7 @@ const CourseSearch = () => {
         university_number: UNIVERSITY_CONFIG.number,
         phase: 'department-load'
       },
-      'Initializing API (1-2 mins)... If >4 mins, try reloading the page...'
+      'Initializing API (~2 mins)... If >4 mins, please reload the page and try again.'
     );
   };
 
