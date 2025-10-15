@@ -1,14 +1,12 @@
 const { getBrowser, createContext, createPage, navigate, safeClose } = require('./browser');
+const { GoogleGenAI } = require('@google/genai');
 const cheerio = require('cheerio');
-const OpenAI = require('openai');
 require('dotenv').config();
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY // Set this environment variable in .env
-});
+// Initialize Gemini client
+const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
-// Function to summarize all ratings using GPT-4o-mini
+// Function to summarize all ratings using Gemini
 async function summarizeRatings(ratings, shouldStopSearch = null) {
     if (!ratings || ratings.length === 0) {
         return "No ratings available to summarize.";
@@ -39,31 +37,34 @@ async function summarizeRatings(ratings, shouldStopSearch = null) {
     try {
         const aiTimerLabel = `AI Summary Generation Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         console.time(aiTimerLabel);
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "system",
-                    content: `You are a helpful and unbiased assistant that summarizes professor ratings for a student. 
-                    Provide a concise summary highlighting the key strengths (if any), weaknesses (if any), and overall patterns in the ratings.
-                    Focus on teaching quality, course difficulty, and student experience.
-                    Do not write in full sentences, only use point-form.
-                    Frequently use quotes from the ratings to support your summary.
-                    The summary must not be longer than 300 words.`
-                },
-                {
-                    role: "user",
-                    content: `Please summarize these ${ratings.length} professor ratings:\n\n${ratingsText}`
-                }
-            ],
-            max_tokens: 500,
-            temperature: 0.5
-        });
+
+        const model = "gemini-2.5-flash"
+        const instructions = `You are a helpful and unbiased assistant that summarizes professor reviews for a student. 
+                                        You will provide a concise summary highlighting the strengths (if any), weaknesses (if any), and overall patterns in the ratings. 
+                                        You should focus on teaching quality, course difficulty, and student experience. 
+                                        You must not write in full sentences, only use point-form.`;
+        const contents = `Please summarize the ${ratings.length} professor reviews. 
+                                    Your summary must not contain contradictory information.
+                                    The length of your summary must not exceed 150 words. 
+                                    ${ratingsText}`;
         
+        const result = await ai.models.generateContent({
+            model: model,
+            contents: contents,
+            config: {
+                temperature: 0.5,
+                systemInstruction: instructions,
+                thinkingConfig: {
+                    thinkingBudget: 0, // Disable thinking mode (enabled by default)
+                },
+            }
+        });
+
         console.timeEnd(aiTimerLabel);
-        console.log(`Input tokens used: ${response.usage.prompt_tokens}`);
-        console.log(`Output tokens used: ${response.usage.completion_tokens}`);
-        console.log(`Total tokens used: ${response.usage.total_tokens}`);
+        const usage = result.usageMetadata;
+        console.log(`Input tokens used: ${usage.promptTokenCount || 'N/A'}`);
+        console.log(`Output tokens used: ${usage.candidatesTokenCount || 'N/A'}`);
+        console.log(`Total tokens used: ${usage.totalTokenCount || 'N/A'}`);
         
         // Check if stop was requested during AI summary generation
         if (shouldStopSearch && shouldStopSearch()) {
@@ -71,7 +72,8 @@ async function summarizeRatings(ratings, shouldStopSearch = null) {
             return null;
         }
         
-        return response.choices[0].message.content;
+        return result.text;
+
     } catch (error) {
         console.error('Error generating summary:', error.message);
         return `Error generating summary: ${error.message}`;
@@ -451,7 +453,7 @@ async function getProfData(profURL, callback, progressCallback = null, shouldSki
                 return;
             }
             
-            // Generate summary of all ratings using GPT-4o-mini
+            // Generate summary of all ratings using Gemini
             console.log('\nStep 2: Generating AI summary of ratings...');
             
             if (progressCallback) {

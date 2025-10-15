@@ -23,7 +23,7 @@ UBC ProfPilot is a web app designed to help students make informed decisions abo
 ## ✨ Features
 
 - **Professor Search**: Search for UBC professors by name and view comprehensive ratings data
-- **AI-Powered Summaries**: Get AI-generated summaries of professor ratings using OpenAI API
+- **AI-Powered Summaries**: Get AI-generated summaries of professor ratings using Gemini API
 - **Course Search**: Find all professors who have taught a specific course
 - **Real-time Progress Updates**: Live progress tracking during data scraping via Socket.IO
 - **Modern UI**: Responsive interface built with React and TailwindCSS
@@ -45,7 +45,7 @@ UBC ProfPilot is a web app designed to help students make informed decisions abo
   - Playwright (Chromium browser)
   - Cheerio (HTML parsing)
   - Axios (HTTP requests with custom connection pooling)
-- **API Integration**: OpenAI API (GPT models for rating summaries)
+- **API Integration**: Gemini API (Google's AI models for rating summaries)
 - **Real-time Communication**: Socket.IO (progress updates and search coordination)
 - **Environment Management**: dotenv
 
@@ -85,7 +85,7 @@ UBC-ProfPilot/
 ### Prerequisites
 - **Node.js** (v14 or higher recommended)
 - **npm** (v6 or higher)
-- **OpenAI API Key** (required for professor rating summaries)
+- **Gemini API Key** (required for professor rating summaries)
 
 ### Backend Setup
 1. Navigate to the backend directory:
@@ -98,7 +98,7 @@ UBC-ProfPilot/
    ```
 3. Create a `.env` file in the backend directory with the following variables:
    ```env
-   OPENAI_API_KEY=your_openai_api_key_here
+   GEMINI_API_KEY=your_gemini_api_key_here
    # FRONTEND_URL is optional for local development
    # Only set it for production deployment
    # FRONTEND_URL=https://your-frontend-url.com
@@ -148,7 +148,7 @@ The backend includes a Dockerfile that uses the official Playwright image to ens
 3. **Configuration**:
    - Set root directory to `backend`
    - Add environment variables:
-     - `OPENAI_API_KEY` - Your OpenAI API key for generating professor summaries
+     - `GEMINI_API_KEY` - Your Gemini API key for generating professor summaries
      - `FRONTEND_URL` - Full URL of your deployed frontend (e.g., `https://your-frontend.vercel.app`)
 
 ### Frontend Deployment (Vercel)
@@ -248,7 +248,7 @@ All professor ratings and course information are sourced from [RateMyProfessors.
 - Scrapes data in real-time (no database required)
 - Uses Playwright for dynamic content loading
 - Implements connection pooling for efficient HTTP requests
-- Generates AI summaries using OpenAI's GPT models
+- Generates AI summaries using Google's Gemini models
 
 ## 📝 License
 
