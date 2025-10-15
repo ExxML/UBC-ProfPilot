@@ -88,7 +88,7 @@ UBC-ProfPilot/
 - **Gemini API Key** (required for professor rating summaries)
 
 ### Backend Setup
-1. Navigate to the backend directory:
+1. Navigate to the `backend` directory:
    ```bash
    cd backend
    ```
@@ -96,7 +96,7 @@ UBC-ProfPilot/
    ```bash
    npm install
    ```
-3. Create a `.env` file in the backend directory with the following variables:
+3. Create a `.env` file in the `backend` directory with the following variables:
    ```env
    GEMINI_API_KEY=your_gemini_api_key_here
    # FRONTEND_URL is optional for local development
@@ -110,7 +110,7 @@ UBC-ProfPilot/
    The server will start on `http://localhost:3001`
 
 ### Frontend Setup
-1. Navigate to the frontend directory:
+1. Navigate to the `frontend` directory:
    ```bash
    cd frontend
    ```
@@ -118,7 +118,7 @@ UBC-ProfPilot/
    ```bash
    npm install
    ```
-3. (Optional) Create a `.env` file in the frontend directory if you need to override the backend URL:
+3. Create a `.env` file in the `frontend` directory with the following variable:
    ```env
    # REACT_APP_BACKEND_URL is optional for local development
    # Only set it for production deployment
