@@ -161,6 +161,61 @@ export const useSearch = (config) => {
     startTimeRef.current = null;
   }, [clearAllTimers]);
 
+  // Function to establish socket connection
+  const establishSocketConnection = useCallback(() => {
+    const backendUrl = API_BACKEND_URL;
+    socketRef.current = io(backendUrl, {
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 1000,
+      timeout: 20000,
+      forceNew: false,
+    });
+    sessionIdRef.current = Date.now().toString();
+
+    const socket = socketRef.current;
+
+    const handleProgress = (data) => {
+      clearAllTimers();
+      
+      lastMessageTimeRef.current = Date.now();
+      inactivityTimeoutRef.current = setTimeout(handleInactivityTimeout, SEARCH_TIMEOUT);
+
+      setProgress({
+        percentage: data.percentage,
+        phase: data.phase,
+        message: data.message
+      });
+    };
+
+    const handleComplete = (data) => {
+      setResult(data);
+      const end = performance.now();
+      setSearchDurationMs(end - (startTimeRef.current || end));
+      setProgress({ percentage: 100, phase: 'complete', message: completeMessage });
+
+      setTimeout(() => {
+        setLoading(false);
+      }, 1500);
+
+      clearAllTimers();
+    };
+
+    const handleError = (data) => {
+      setError(data.error);
+      setLoading(false);
+      setProgress({ percentage: 0, phase: 'error', message: errorMessage });
+      clearAllTimers();
+    };
+
+    socket.on(progressEvent, handleProgress);
+    socket.on(completeEvent, handleComplete);
+    socket.on(errorEvent, handleError);
+
+    return socket;
+  }, [progressEvent, completeEvent, errorEvent, completeMessage, errorMessage, handleInactivityTimeout, clearAllTimers]);
+
   // Start search handler
   const startSearch = useCallback((eventName, payload, initialMessage) => {
     setLoading(true);
@@ -174,6 +229,12 @@ export const useSearch = (config) => {
 
     initTimeoutRef.current = setTimeout(createInitTimeoutHandler(), INIT_TIMEOUT);
 
+    // Check if socket is connected, if not establish connection
+    if (!socketRef.current || !socketRef.current.connected) {
+      console.log('No socket connection found, establishing new connection...');
+      establishSocketConnection();
+    }
+
     if (socketRef.current) {
       lastMessageTimeRef.current = Date.now();
       socketRef.current.emit(eventName, {
@@ -181,7 +242,7 @@ export const useSearch = (config) => {
         sessionId: sessionIdRef.current
       });
     }
-  }, [clearAllTimers, createInitTimeoutHandler]);
+  }, [clearAllTimers, createInitTimeoutHandler, establishSocketConnection]);
 
   // Emit custom event (for skip actions, etc.)
   const emitEvent = useCallback((eventName, payload) => {
@@ -202,6 +263,7 @@ export const useSearch = (config) => {
     startSearch,
     stopSearch,
     emitEvent,
-    setProgress
+    setProgress,
+    establishSocketConnection
   };
 };
