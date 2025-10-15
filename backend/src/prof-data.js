@@ -9,7 +9,7 @@ const openai = new OpenAI({
 });
 
 // Function to summarize all ratings using GPT-4o-mini
-async function summarizeRatings(ratings) {
+async function summarizeRatings(ratings, shouldStopSearch = null) {
     if (!ratings || ratings.length === 0) {
         return "No ratings available to summarize.";
     }
@@ -64,6 +64,13 @@ async function summarizeRatings(ratings) {
         console.log(`Input tokens used: ${response.usage.prompt_tokens}`);
         console.log(`Output tokens used: ${response.usage.completion_tokens}`);
         console.log(`Total tokens used: ${response.usage.total_tokens}`);
+        
+        // Check if stop was requested during AI summary generation
+        if (shouldStopSearch && shouldStopSearch()) {
+            console.log('Stop signal received during AI summary, cancelling...');
+            return null;
+        }
+        
         return response.choices[0].message.content;
     } catch (error) {
         console.error('Error generating summary:', error.message);
@@ -451,7 +458,13 @@ async function getProfData(profURL, callback, progressCallback = null, shouldSki
                 progressCallback('ai-summary', 85, 'Generating AI summary...');
             }
             
-            const summary = await summarizeRatings(ratings);
+            const summary = await summarizeRatings(ratings, shouldStopSearch);
+            
+            // Check if summary generation was cancelled (stop button clicked)
+            if (summary === null) {
+                console.log('AI summary generation cancelled, skipping results');
+                return;
+            }
             
             if (progressCallback) {
                 progressCallback('complete', 100, 'Search complete!');
