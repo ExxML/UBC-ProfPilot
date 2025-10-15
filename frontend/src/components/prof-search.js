@@ -243,6 +243,10 @@ const ProfessorSearch = () => {
   const handleSkipRatings = () => {
     if (socketRef.current && sessionIdRef.current) {
       console.log('Skipping remaining ratings...');
+      setProgress(prev => ({
+        ...prev,
+        message: 'Skipping remaining ratings...'
+      }));
       socketRef.current.emit('skip-ratings-load', {
         sessionId: sessionIdRef.current
       });

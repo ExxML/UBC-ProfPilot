@@ -183,6 +183,10 @@ const CourseSearch = () => {
   const handleSkipProfessors = () => {
     if (socketRef.current && sessionIdRef.current) {
       console.log(`Skipping ${progress.phase} phase...`);
+      setProgress(prev => ({
+        ...prev,
+        message: 'Skipping remaining professors...'
+      }));
       socketRef.current.emit('skip-professors-load', {
         sessionId: sessionIdRef.current,
         phase: progress.phase
