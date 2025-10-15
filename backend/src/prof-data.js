@@ -39,10 +39,11 @@ async function summarizeRatings(ratings, shouldStopSearch = null) {
         console.time(aiTimerLabel);
 
         const model = "gemini-2.5-flash"
-        const instructions = `You are a helpful and unbiased assistant that summarizes professor reviews for a student. 
-                                        You will provide a concise summary highlighting the strengths (if any), weaknesses (if any), and overall patterns in the ratings. 
-                                        You should focus on teaching quality, course difficulty, and student experience. 
-                                        You must not write in full sentences, only use point-form.`;
+        const instructions = `You are a helpful and unbiased assistant that summarizes professor reviews for a student.
+                                        You will provide a concise summary highlighting Strengths (if any), Weaknesses (if any), and Overall Patterns in the ratings.
+                                        Focus on teaching quality, course difficulty, and student experience.
+                                        Use point-form with hyphens for each item.
+                                        Do not add a hyphen in front of the headers "Strengths", "Weaknesses", and "Overall Patterns"; instead, make these headers bold and end with a colon.`;
         const contents = `Please summarize the ${ratings.length} professor reviews. 
                                     Your summary must not contain contradictory information.
                                     The length of your summary must not exceed 150 words. 
@@ -72,6 +73,7 @@ async function summarizeRatings(ratings, shouldStopSearch = null) {
             return null;
         }
         
+        console.log(result.text);
         return result.text;
 
     } catch (error) {
