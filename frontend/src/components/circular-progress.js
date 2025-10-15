@@ -19,7 +19,6 @@ const CircularProgress = ({
   strokeWidth = 8,
   message = 'Loading...',
   phase = 'idle',
-  animate = true,
   searchType = ''
 }) => {
   // Inject pulsing glow animations into document head
@@ -149,26 +148,39 @@ const CircularProgress = ({
 
       {/* Phase indicators */}
       <div className="flex space-x-2 mt-4">
-        {Object.entries(phaseConfig).slice(1, searchType === 'course' ? 4 : searchType === 'professor' ? 6 : 0).map(([phaseKey, phaseData], index) => (
-          <div
-            key={phaseKey}
-            className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              getPhaseOrder(phase) > index 
-                ? 'scale-110' 
-                // Always animate the first phase
-                : getPhaseOrder(phase) === index || index === 0
-                ? 'scale-125 animate-pulse' 
-                : 'scale-75'
-            }`}
-            style={{
-              // Always light up the first phase
-              backgroundColor: (getPhaseOrder(phase) >= index || index === 0) ? (getPhaseOrder(phase) === index ? config.color : phaseData.color) : '#e5e7eb'
-            }}
-          />
-        ))}
+        {getPhaseIndicators(searchType).map((phaseKey, index) => {
+          const phaseData = phaseConfig[phaseKey];
+          return (
+            <div
+              key={phaseKey}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                getPhaseOrder(phase) > index 
+                  ? 'scale-110' 
+                  // Always animate the first phase
+                  : getPhaseOrder(phase) === index || index === 0
+                  ? 'scale-125 animate-pulse' 
+                  : 'scale-75'
+              }`}
+              style={{
+                // Always light up the first phase
+                backgroundColor: (getPhaseOrder(phase) >= index || index === 0) ? (getPhaseOrder(phase) === index ? config.color : phaseData.color) : '#e5e7eb'
+              }}
+            />
+          );
+        })}
       </div>
     </div>
   );
+};
+
+// Helper function to get phase indicators for each search type
+const getPhaseIndicators = (searchType) => {
+  if (searchType === 'professor') {
+    return ['url-search', 'url-found', 'page-load', 'ratings-load', 'ai-summary'];
+  } else if (searchType === 'course') {
+    return ['department-load', 'professor-load', 'course-check'];
+  }
+  return [];
 };
 
 // Helper function to get phase title

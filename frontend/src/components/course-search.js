@@ -372,7 +372,6 @@ const CourseSearch = () => {
               message={progress.message}
               size={140}
               strokeWidth={10}
-              animate={true}
               searchType="course"
             />
           </div>
@@ -382,7 +381,7 @@ const CourseSearch = () => {
               <button
                 onClick={handleSkipProfessors}
                 className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200 shadow-md"
-                title="Display course professors now"
+                title={progress.phase === 'professor-load' ? 'Start checking course professors' : 'Display course professors'}
               >
                 Skip Loading
               </button>
