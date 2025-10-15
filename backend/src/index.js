@@ -26,6 +26,7 @@ const connectionTimestamps = new Map();
 const skipRatingsSignals = new Map(); // Track skip signals by session ID
 const skipProfessorLoadSignals = new Map(); // Track skip signals for course professor loading phase
 const skipCourseCheckSignals = new Map(); // Track skip signals for course checking phase
+const stopSearchSignals = new Map(); // Track stop signals to cancel searches entirely
 const CONNECTION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 // Track connected clients for auto-shutdown
@@ -54,6 +55,7 @@ io.on('connection', (socket) => {
         activeConnections.set(sessionId, socket.id);
         connectionTimestamps.set(sessionId, Date.now());
         skipRatingsSignals.delete(sessionId); // Clear any previous skip signal
+        stopSearchSignals.delete(sessionId); // Clear any previous stop signal
         
         // Emit progress updates
         const emitProgress = (phase, percentage, message) => {
@@ -63,6 +65,11 @@ io.on('connection', (socket) => {
         // Function to check if skip was requested
         const shouldSkipRatings = () => {
             return skipRatingsSignals.get(sessionId) === true;
+        };
+        
+        // Function to check if stop was requested
+        const shouldStopSearch = () => {
+            return stopSearchSignals.get(sessionId) === true;
         };
         
         emitProgress('url-search', 10, 'Searching for professor profile...');
@@ -100,9 +107,10 @@ io.on('connection', (socket) => {
                     summary: data.summary
                 });
                 
-                // Clean up skip signal after search completes
+                // Clean up skip and stop signals after search completes
                 skipRatingsSignals.delete(sessionId);
-            }, emitProgress, shouldSkipRatings);
+                stopSearchSignals.delete(sessionId);
+            }, emitProgress, shouldSkipRatings, shouldStopSearch);
         }, emitProgress);
     });
     
@@ -118,6 +126,7 @@ io.on('connection', (socket) => {
         connectionTimestamps.set(sessionId, Date.now());
         skipProfessorLoadSignals.delete(sessionId); // Clear any previous skip signals
         skipCourseCheckSignals.delete(sessionId);
+        stopSearchSignals.delete(sessionId); // Clear any previous stop signal
         
         // Emit progress updates
         const emitProgress = (phase, percentage, message) => {
@@ -137,6 +146,11 @@ io.on('connection', (socket) => {
         // Function to check if skip was requested for course checking
         const shouldSkipCourseCheck = () => {
             return skipCourseCheckSignals.get(sessionId) === true;
+        };
+        
+        // Function to check if stop was requested
+        const shouldStopSearch = () => {
+            return stopSearchSignals.get(sessionId) === true;
         };
         
         emitProgress('department-load', 5, 'Starting course search...');
@@ -166,10 +180,11 @@ io.on('connection', (socket) => {
                 }))
             });
             
-            // Clean up skip signals after search completes
+            // Clean up skip and stop signals after search completes
             skipProfessorLoadSignals.delete(sessionId);
             skipCourseCheckSignals.delete(sessionId);
-        }, emitProgress, shouldSkipProfessorLoad, shouldSkipCourseCheck);
+            stopSearchSignals.delete(sessionId);
+        }, emitProgress, shouldSkipProfessorLoad, shouldSkipCourseCheck, shouldStopSearch);
     });
     
     socket.on('skip-professors-load', (data) => {
@@ -182,6 +197,12 @@ io.on('connection', (socket) => {
         } else if (phase === 'course-check') {
             skipCourseCheckSignals.set(sessionId, true);
         }
+    });
+    
+    socket.on('stop-search', (data) => {
+        const { sessionId } = data;
+        console.log(`Stop search signal received for session: ${sessionId}`);
+        stopSearchSignals.set(sessionId, true);
     });
     
     socket.on('disconnect', async () => {

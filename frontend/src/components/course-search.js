@@ -194,6 +194,38 @@ const CourseSearch = () => {
     }
   };
 
+  const handleStopSearch = () => {
+    // Emit stop signal to backend
+    if (socketRef.current && sessionIdRef.current) {
+      console.log('Sending stop signal to backend...');
+      socketRef.current.emit('stop-search', {
+        sessionId: sessionIdRef.current
+      });
+    }
+
+    // Clear all timers
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (inactivityTimeoutRef.current) {
+      clearTimeout(inactivityTimeoutRef.current);
+      inactivityTimeoutRef.current = null;
+    }
+    if (initTimeoutRef.current) {
+      clearTimeout(initTimeoutRef.current);
+      initTimeoutRef.current = null;
+    }
+
+    // Reset state
+    setLoading(false);
+    setError(null);
+    setResult(null);
+    setProgress({ percentage: 0, phase: 'idle', message: 'Search stopped' });
+    setSearchDurationMs(null);
+    startTimeRef.current = null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -366,8 +398,15 @@ const CourseSearch = () => {
       {/* Progress Bar */}
       {loading && (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden relative">
-          <div className="bg-primary-50 px-6 py-4 border-b border-gray-200">
+          <div className="bg-primary-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h3 className="text-lg font-medium text-gray-900">Searching Course</h3>
+            <button
+              onClick={handleStopSearch}
+              className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-200"
+              title="Stop search and reset"
+            >
+              Stop
+            </button>
           </div>
           <div className="flex items-center justify-center py-8">
             <CircularProgress

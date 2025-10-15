@@ -71,7 +71,7 @@ async function summarizeRatings(ratings) {
     }
 }
 
-async function getProfData(profURL, callback, progressCallback = null, shouldSkipRatings = null) {
+async function getProfData(profURL, callback, progressCallback = null, shouldSkipRatings = null, shouldStopSearch = null) {
     console.log(`Making request to: ${profURL}`);
     const totalTimerLabel = `Total Professor Data Search Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     console.time(totalTimerLabel);
@@ -163,6 +163,12 @@ async function getProfData(profURL, callback, progressCallback = null, shouldSki
         
         while (loadMoreVisible && attemptCount < maxAttempts) { // && currentRatingsCount < 95) {
             try {
+                // Check if stop was requested
+                if (shouldStopSearch && shouldStopSearch()) {
+                    console.log('Stop signal received, cancelling search...');
+                    return;
+                }
+                
                 // Check if skip was requested
                 if (shouldSkipRatings && shouldSkipRatings()) {
                     console.log('Skip signal received, stopping ratings load...');
@@ -431,6 +437,12 @@ async function getProfData(profURL, callback, progressCallback = null, shouldSki
                     ratings.push(rating);
                 }
             });
+            
+            // Check if stop was requested before generating AI summary
+            if (shouldStopSearch && shouldStopSearch()) {
+                console.log('Stop signal received, cancelling search...');
+                return;
+            }
             
             // Generate summary of all ratings using GPT-4o-mini
             console.log('\nStep 2: Generating AI summary of ratings...');
