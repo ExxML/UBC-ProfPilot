@@ -42,7 +42,7 @@ const CourseSearch = () => {
       'start-course-search',
       {
         course_name: formData.course_name,
-        department_number: DEPARTMENT_MAPPINGS[formData.department_name],
+        department_number: DEPARTMENT_MAPPINGS.get(formData.department_name),
         university_number: UNIVERSITY_CONFIG.number,
         phase: 'department-load'
       },
@@ -88,7 +88,7 @@ const CourseSearch = () => {
               required
             >
               <option value="">Select a department...</option>
-              {Array.from(Object.keys(DEPARTMENT_MAPPINGS)).sort().map((deptName) => (
+              {Array.from(DEPARTMENT_MAPPINGS.keys()).sort().map((deptName) => (
                 <option key={deptName} value={deptName}>
                   {deptName}
                 </option>
@@ -166,8 +166,8 @@ const CourseSearch = () => {
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Department</h4>
                 <p className="text-gray-900">
-                  {Array.from(Object.keys(DEPARTMENT_MAPPINGS)).find(name => 
-                    DEPARTMENT_MAPPINGS[name] === result.department_number
+                  {Array.from(DEPARTMENT_MAPPINGS.keys()).find(name => 
+                    DEPARTMENT_MAPPINGS.get(name) === result.department_number
                   ) || result.department_number}
                 </p>
               </div>
