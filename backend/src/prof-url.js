@@ -1,8 +1,8 @@
 const cheerio = require('cheerio');
-const { createAxiosInstance } = require('./axios-config');
+const axios = require('axios');
 
-// Create a reusable axios instance with connection pooling for professor URL lookup
-const axiosInstance = createAxiosInstance('profUrl');
+// Create axios instance with default settings
+const axiosInstance = axios.create();
 
 // Add headers to mimic a real browser request
 const headers = {

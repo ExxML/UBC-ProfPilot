@@ -1,9 +1,9 @@
 const cheerio = require('cheerio');
 const { getBrowser, createContext, createPage, navigate, safeClose } = require('./browser');
-const { createAxiosInstance } = require('./axios-config');
+const axios = require('axios');
 
-// Create a reusable axios instance with connection pooling for course data scraping
-const axiosInstance = createAxiosInstance('courseData');
+// Create axios instance with default settings
+const axiosInstance = axios.create();
 
 // Function to search for all professors in a department at a university
 async function searchProfessorsByDepartment(universityNumber, departmentNumber, callback, progressCallback = null, shouldSkipProfessorLoad = null, shouldStopSearch = null) {
