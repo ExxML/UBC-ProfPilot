@@ -15,8 +15,8 @@ const ProgressDisplay = ({
   const showSkipButton = skipPhases.includes(progress.phase);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden relative">
-      <div className="bg-primary-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+    <div className="relative overflow-hidden bg-white rounded-lg border border-gray-200">
+      <div className="flex items-center justify-between px-6 py-4 bg-primary-50 border-b border-gray-200">
         <h3 className="text-lg font-medium text-gray-900">{title}</h3>
         <button
           onClick={onStop}
@@ -40,7 +40,7 @@ const ProgressDisplay = ({
         <div className="absolute bottom-4 right-4">
           <button
             onClick={onSkip}
-            className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200 shadow-md"
+            className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 shadow-md transition-colors duration-200"
             title={skipTitle}
           >
             Skip Loading

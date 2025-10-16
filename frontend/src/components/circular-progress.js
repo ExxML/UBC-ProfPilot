@@ -125,7 +125,7 @@ const CircularProgress = ({
         {/* Center content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div 
-            className="text-2xl mb-1 p-2 rounded-full transition-colors duration-300"
+            className="p-2 mb-1 text-2xl rounded-full transition-colors duration-300"
             style={{ backgroundColor: config.bgColor }}
           >
             {config.icon}

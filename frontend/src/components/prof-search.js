@@ -127,7 +127,7 @@ const ProfessorSearch = () => {
               name="fname"
               value={formData.fname}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Ex. Gregor"
               required
             />
@@ -150,7 +150,7 @@ const ProfessorSearch = () => {
         </div>
 
         {/* Prof Search Info */}
-        <div className="bg-gray-50 p-4 rounded-md">
+        <div className="p-4 bg-gray-50 rounded-md">
           <p className="text-sm text-gray-900 mb-2">
             <span className="text-xl font-medium">Professor Search 🔎</span>
           </p>
@@ -162,7 +162,7 @@ const ProfessorSearch = () => {
         <button
           type="submit"
           disabled={!isFormValid || loading}
-          className="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          className="w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
         >
           {loading ? 'Searching...' : 'Search Professor'}
         </button>
@@ -182,7 +182,7 @@ const ProfessorSearch = () => {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="p-4 bg-red-50 rounded-md border border-red-200">
           <div className="flex">
             <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -197,8 +197,8 @@ const ProfessorSearch = () => {
 
       {/* Results */}
       {!loading && result && (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-primary-50 px-6 py-4 border-b border-gray-200">
+        <div className="overflow-hidden bg-white rounded-lg border border-gray-200">
+          <div className="px-6 py-4 bg-primary-50 border-b border-gray-200">
             <h3 className="text-lg font-medium text-gray-900">Professor Information</h3>
           </div>
           <div className="p-6 space-y-4">
@@ -218,15 +218,15 @@ const ProfessorSearch = () => {
 
             {/* Ratings */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-green-50 p-4 rounded-lg">
+              <div className="p-4 bg-green-50 rounded-lg">
                 <h4 className="text-sm font-medium text-green-800">Overall Quality</h4>
                 <p className="text-2xl font-bold text-green-600">{result.overall_quality}/5</p>
               </div>
-              <div className="bg-yellow-50 p-4 rounded-lg">
+              <div className="p-4 bg-yellow-50 rounded-lg">
                 <h4 className="text-sm font-medium text-yellow-800">Difficulty</h4>
                 <p className="text-2xl font-bold text-yellow-600">{result.difficulty}/5</p>
               </div>
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="p-4 bg-blue-50 rounded-lg">
                 <h4 className="text-sm font-medium text-blue-800">Would Take Again</h4>
                 <p className="text-2xl font-bold text-blue-600">{result.would_take_again}</p>
               </div>
@@ -236,7 +236,7 @@ const ProfessorSearch = () => {
             {result.summary && (
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-2">AI Summary</h4>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="text-gray-700">{parseAISummary(result.summary)}</div>
                 </div>
               </div>
@@ -257,7 +257,7 @@ const ProfessorSearch = () => {
               </a>
             </div>
           </div>
-          <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-xs text-gray-600">
+          <div className="px-6 py-3 bg-gray-50 text-xs text-gray-600 border-t border-gray-200">
             {searchDurationMs !== null && result.ratings && (
               <span>{result.ratings.length} rating(s) found in {(searchDurationMs / 1000).toFixed(2)} seconds</span>
             )}
