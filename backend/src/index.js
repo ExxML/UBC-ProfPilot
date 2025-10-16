@@ -8,14 +8,14 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const app = express();
 
-const frontendUrl = process.env.FRONTEND_URL;
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-app.use(cors({origin: frontendUrl || 'http://localhost:3000'}));
+app.use(cors({origin: frontendUrl}));
 
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*",
+        origin: frontendUrl,
         methods: ["GET", "POST"]
     }
 });
