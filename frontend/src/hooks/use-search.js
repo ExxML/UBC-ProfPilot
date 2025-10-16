@@ -58,7 +58,7 @@ export const useSearch = (config) => {
   }, []);
 
   const handleInactivityTimeout = useCallback(() => {
-    setProgress(prev => ({ ...prev, message: 'Waiting 1 minute for backend response...' }));
+    setProgress(prev => ({ ...prev, message: 'Waiting 1 more minute for backend response...' }));
     timeoutRef.current = setTimeout(createTimeoutHandler(), FINAL_SEARCH_TIMEOUT);
   }, [createTimeoutHandler]);
 

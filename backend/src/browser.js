@@ -133,9 +133,6 @@ class BrowserPool {
     if (this.contextPool.length > 0) {
       const context = this.contextPool.pop();
       try {
-        // Quick health check - try to access pages and verify context is usable
-        const pages = await context.pages();
-        
         // Additional check to ensure we can create a new page
         const testPage = await context.newPage();
         await safeClose(testPage, 'test page');

@@ -55,6 +55,7 @@ io.on('connection', (socket) => {
 
     // Track client connection
     connectedClients.add(socket.id);
+    console.log(`Clients connected: ${connectedClients.size}`);
     
     socket.on('start-professor-search', (data) => {
         const { fname, lname, university, sessionId } = data;
@@ -243,7 +244,7 @@ io.on('connection', (socket) => {
         }
 
         // Report number of clients still connected
-        console.log(`Clients remaining: ${connectedClients.size}`);
+        console.log(`Clients connected: ${connectedClients.size}`);
 
         // Check if no clients are connected and close persistent browser
         if (connectedClients.size === 0) {
