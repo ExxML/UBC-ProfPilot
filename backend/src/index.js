@@ -1,23 +1,23 @@
-const professorURL = require('./prof-url')
-const professorData = require('./prof-data')
-const findProfessorsForCourse = require('./course-data')
-const { closeBrowser, closePersistentBrowser } = require('./browser')
-const express = require('express');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
+const professorURL = require("./prof-url");
+const professorData = require("./prof-data");
+const findProfessorsForCourse = require("./course-data");
+const { closeBrowser, closePersistentBrowser } = require("./browser");
+const express = require("express");
+const { createServer } = require("http");
+const { Server } = require("socket.io");
+const cors = require("cors");
 const app = express();
 
-const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
-app.use(cors({origin: frontendUrl}));
+app.use(cors({ origin: frontendUrl }));
 
 const server = createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: frontendUrl,
-        methods: ["GET", "POST"]
-    }
+  cors: {
+    origin: frontendUrl,
+    methods: ["GET", "POST"],
+  },
 });
 
 // Store active connections with socket ID mapped to session ID
@@ -33,414 +33,464 @@ const CONNECTION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 const connectedClients = new Set();
 
 // Cleanup stale connections every 5 minutes
-const cleanupInterval = setInterval(() => {
+const cleanupInterval = setInterval(
+  () => {
     const now = Date.now();
     for (const [sessionId, timestamp] of connectionTimestamps.entries()) {
-        if (now - timestamp > CONNECTION_TIMEOUT) {
-            // Find which socket this session belongs to and remove it
-            for (const [socketId, activeSessionId] of activeConnections.entries()) {
-                if (activeSessionId === sessionId) {
-                    activeConnections.delete(socketId);
-                    break;
-                }
-            }
-            connectionTimestamps.delete(sessionId);
-            console.log(`Cleaned up stale connection: ${sessionId}`);
+      if (now - timestamp > CONNECTION_TIMEOUT) {
+        // Find which socket this session belongs to and remove it
+        for (const [socketId, activeSessionId] of activeConnections.entries()) {
+          if (activeSessionId === sessionId) {
+            activeConnections.delete(socketId);
+            break;
+          }
         }
+        connectionTimestamps.delete(sessionId);
+        console.log(`Cleaned up stale connection: ${sessionId}`);
+      }
     }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000,
+);
 
-io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
+io.on("connection", (socket) => {
+  console.log("Client connected:", socket.id);
 
-    // Track client connection
-    connectedClients.add(socket.id);
-    console.log(`Clients connected: ${connectedClients.size}`);
-    
-    socket.on('start-professor-search', (data) => {
-        const { fname, lname, university, sessionId } = data;
+  // Track client connection
+  connectedClients.add(socket.id);
+  console.log(`Clients connected: ${connectedClients.size}`);
 
-        // Track this socket's active session
-        activeConnections.set(socket.id, sessionId);
+  socket.on("start-professor-search", (data) => {
+    const { fname, lname, university, sessionId } = data;
 
-        connectionTimestamps.set(sessionId, Date.now());
-        skipRatingsSignals.delete(sessionId); // Clear any previous skip signal
-        stopSearchSignals.delete(sessionId); // Clear any previous stop signal
-        
-        // Emit progress updates
-        const emitProgress = (phase, percentage, message) => {
-            socket.emit('search-progress', { phase, percentage, message });
-        };
-        
-        // Function to check if skip was requested
-        const shouldSkipRatings = () => {
-            return skipRatingsSignals.get(sessionId) === true;
-        };
-        
-        // Function to check if stop was requested
-        const shouldStopSearch = () => {
-            return stopSearchSignals.get(sessionId) === true;
-        };
-        
-        emitProgress('url-search', 10, 'Searching for professor profile...');
-        
-        professorURL(fname, lname, university, (urlResponse) => {
-            if (!urlResponse || !urlResponse.URL) {
-                socket.emit('search-error', {
-                    error: 'Professor not found or error generating URL',
-                    details: urlResponse ? urlResponse.error : 'No response from URL generator'
-                });
-                return;
-            }
-            
-            emitProgress('url-found', 25, 'Professor profile found, loading data...');
-            
-            professorData(urlResponse.URL, (data) => {
-                if (data.error) {
-                    socket.emit('search-error', {
-                        error: 'Error fetching professor data',
-                        details: data.error,
-                        status: data.status
-                    });
-                    return;
-                }
-                
-                if (shouldStopSearch()) {
-                    return;
-                }
-                
-                socket.emit('search-complete', {
-                    URL: urlResponse.URL,
-                    first_name: urlResponse.lname,  // First/last names are swapped
-                    last_name: urlResponse.fname,
-                    university: urlResponse.university,
-                    would_take_again: data.percentage,
-                    difficulty: data.difficulty,
-                    overall_quality: data.quality,
-                    ratings: data.ratings,
-                    summary: data.summary
-                });
-                
-                // Clean up skip and stop signals after search completes
-                skipRatingsSignals.delete(sessionId);
-                stopSearchSignals.delete(sessionId);
-            }, emitProgress, shouldSkipRatings, shouldStopSearch);
-        }, emitProgress);
-    });
-    
-    socket.on('skip-ratings-load', (data) => {
-        const { sessionId } = data;
-        console.log(`Skip ratings signal received for session: ${sessionId}`);
-        skipRatingsSignals.set(sessionId, true);
-    });
-    
-    socket.on('start-course-search', (data) => {
-        const { course_name, department_number, university_number, sessionId } = data;
+    // Track this socket's active session
+    activeConnections.set(socket.id, sessionId);
 
-        // Track socket's active session
-        activeConnections.set(socket.id, sessionId);
+    connectionTimestamps.set(sessionId, Date.now());
+    skipRatingsSignals.delete(sessionId); // Clear any previous skip signal
+    stopSearchSignals.delete(sessionId); // Clear any previous stop signal
 
-        connectionTimestamps.set(sessionId, Date.now());
-        skipProfessorLoadSignals.delete(sessionId); // Clear any previous skip signals
-        skipCourseCheckSignals.delete(sessionId);
-        stopSearchSignals.delete(sessionId); // Clear any previous stop signal
-        
-        // Emit progress updates
-        const emitProgress = (phase, percentage, message) => {
-            socket.emit('course-search-progress', { phase, percentage, message });
-            
-            // Clear professor-load skip signal once we move to course-check phase
-            if (phase === 'course-check') {
-                skipProfessorLoadSignals.delete(sessionId);
-            }
-        };
-        
-        // Function to check if skip was requested for professor loading
-        const shouldSkipProfessorLoad = () => {
-            return skipProfessorLoadSignals.get(sessionId) === true;
-        };
-        
-        // Function to check if skip was requested for course checking
-        const shouldSkipCourseCheck = () => {
-            return skipCourseCheckSignals.get(sessionId) === true;
-        };
-        
-        // Function to check if stop was requested
-        const shouldStopSearch = () => {
-            return stopSearchSignals.get(sessionId) === true;
-        };
-        
-        emitProgress('department-load', 5, 'Starting course search...');
-        
-        findProfessorsForCourse(course_name, department_number, university_number, (error, professors) => {
-            if (error) {
-                socket.emit('course-search-error', {
-                    error: 'Error searching for course professors',
-                    details: error.message
-                });
-                return;
-            }
-        
-            if (shouldStopSearch()) {
-                return;
-            }
-            
-            socket.emit('course-search-complete', {
-                course_name: course_name,
-                department_number: department_number,
-                university_number: university_number,
-                professors_count: professors.length,
-                professors: professors.map(prof => ({
-                    name: prof.name,
-                    first_name: prof.lastName,  // First/last names are swapped
-                    last_name: prof.firstName,
-                    department: prof.department,
-                    university: prof.university,
-                    profile_url: prof.profileURL,
-                    num_ratings: prof.numRatings
-                }))
-            });
-            
-            // Clean up skip and stop signals after search completes
-            skipProfessorLoadSignals.delete(sessionId);
-            skipCourseCheckSignals.delete(sessionId);
-            stopSearchSignals.delete(sessionId);
-        }, emitProgress, shouldSkipProfessorLoad, shouldSkipCourseCheck, shouldStopSearch);
-    });
-    
-    socket.on('skip-professors-load', (data) => {
-        const { sessionId, phase } = data;
-        console.log(`Skip signal received for session: ${sessionId}, phase: ${phase}`);
-        
-        // Set the appropriate skip signal based on the current phase
-        if (phase === 'professor-load') {
-            skipProfessorLoadSignals.set(sessionId, true);
-        } else if (phase === 'course-check') {
-            skipCourseCheckSignals.set(sessionId, true);
-        }
-    });
-    
-    socket.on('stop-search', (data) => {
-        const { sessionId } = data;
-        console.log(`Stop search signal received for session: ${sessionId}`);
-        stopSearchSignals.set(sessionId, true);
-    });
-    
-    socket.on('disconnect', async () => {
-        console.log('Client disconnected:', socket.id);
+    // Emit progress updates
+    const emitProgress = (phase, percentage, message) => {
+      socket.emit("search-progress", { phase, percentage, message });
+    };
 
-        // Remove from client tracking
-        connectedClients.delete(socket.id);
+    // Function to check if skip was requested
+    const shouldSkipRatings = () => {
+      return skipRatingsSignals.get(sessionId) === true;
+    };
 
-        // Stop active session of the socket
-        const sessionId = activeConnections.get(socket.id);
-        if (sessionId) {
-            console.log(`Terminating active search ${sessionId} for disconnected client`);
-            stopSearchSignals.set(sessionId, true);
+    // Function to check if stop was requested
+    const shouldStopSearch = () => {
+      return stopSearchSignals.get(sessionId) === true;
+    };
 
-            // Remove from tracking maps
-            activeConnections.delete(socket.id);
-            connectionTimestamps.delete(sessionId);
-        }
+    emitProgress("url-search", 10, "Searching for professor profile...");
 
-        // Report number of clients still connected
-        console.log(`Clients connected: ${connectedClients.size}`);
-
-        // Check if no clients are connected and close persistent browser
-        if (connectedClients.size === 0) {
-            console.log('No clients connected, closing persistent browser...');
-            try {
-                await closePersistentBrowser();
-                console.log('Persistent browser closed successfully');
-            } catch (error) {
-                console.error('Error closing persistent browser:', error.message);
-            }
-        }
-    });
-});
-
-app.get('/professor', function (req, res) {
-    const fname = req.query.fname;
-    const lname = req.query.lname;
-    const university = req.query.university;
-    
-    if (!fname || !lname || !university) {
-        return res.status(400).json({
-            error: 'Missing required parameters: fname, lname, and university are required'
-        });
-    }
-    
-    professorURL(fname, lname, university, (urlResponse) => {
+    professorURL(
+      fname,
+      lname,
+      university,
+      (urlResponse) => {
         if (!urlResponse || !urlResponse.URL) {
-            return res.status(404).json({
-                error: 'Professor not found or error generating URL',
-                details: urlResponse ? urlResponse.error : 'No response from URL generator'
-            });
+          socket.emit("search-error", {
+            error: "Professor not found or error generating URL",
+            details: urlResponse
+              ? urlResponse.error
+              : "No response from URL generator",
+          });
+          return;
         }
-        
-        console.log(`Fetching data for: ${urlResponse.URL}`);
-        
-        professorData(urlResponse.URL, (data) => {
+
+        emitProgress(
+          "url-found",
+          25,
+          "Professor profile found, loading data...",
+        );
+
+        professorData(
+          urlResponse.URL,
+          (data) => {
             if (data.error) {
-                console.error('Error from professorData:', data.error);
-                return res.status(500).json({
-                    error: 'Error fetching professor data',
-                    details: data.error,
-                    status: data.status
-                });
+              socket.emit("search-error", {
+                error: "Error fetching professor data",
+                details: data.error,
+                status: data.status,
+              });
+              return;
             }
-            
-            res.json({
-                URL: urlResponse.URL,
-                first_name: urlResponse.lname,  // First/last names are swapped
-                last_name: urlResponse.fname,
-                university: urlResponse.university,
-                would_take_again: data.percentage,
-                difficulty: data.difficulty,
-                overall_quality: data.quality,
-                ratings: data.ratings,
-                summary: data.summary
+
+            if (shouldStopSearch()) {
+              return;
+            }
+
+            socket.emit("search-complete", {
+              URL: urlResponse.URL,
+              first_name: urlResponse.lname, // First/last names are swapped
+              last_name: urlResponse.fname,
+              university: urlResponse.university,
+              would_take_again: data.percentage,
+              difficulty: data.difficulty,
+              overall_quality: data.quality,
+              ratings: data.ratings,
+              summary: data.summary,
             });
+
+            // Clean up skip and stop signals after search completes
+            skipRatingsSignals.delete(sessionId);
+            stopSearchSignals.delete(sessionId);
+          },
+          emitProgress,
+          shouldSkipRatings,
+          shouldStopSearch,
+        );
+      },
+      emitProgress,
+    );
+  });
+
+  socket.on("skip-ratings-load", (data) => {
+    const { sessionId } = data;
+    console.log(`Skip ratings signal received for session: ${sessionId}`);
+    skipRatingsSignals.set(sessionId, true);
+  });
+
+  socket.on("start-course-search", (data) => {
+    const { course_name, department_number, university_number, sessionId } =
+      data;
+
+    // Track socket's active session
+    activeConnections.set(socket.id, sessionId);
+
+    connectionTimestamps.set(sessionId, Date.now());
+    skipProfessorLoadSignals.delete(sessionId); // Clear any previous skip signals
+    skipCourseCheckSignals.delete(sessionId);
+    stopSearchSignals.delete(sessionId); // Clear any previous stop signal
+
+    // Emit progress updates
+    const emitProgress = (phase, percentage, message) => {
+      socket.emit("course-search-progress", { phase, percentage, message });
+
+      // Clear professor-load skip signal once we move to course-check phase
+      if (phase === "course-check") {
+        skipProfessorLoadSignals.delete(sessionId);
+      }
+    };
+
+    // Function to check if skip was requested for professor loading
+    const shouldSkipProfessorLoad = () => {
+      return skipProfessorLoadSignals.get(sessionId) === true;
+    };
+
+    // Function to check if skip was requested for course checking
+    const shouldSkipCourseCheck = () => {
+      return skipCourseCheckSignals.get(sessionId) === true;
+    };
+
+    // Function to check if stop was requested
+    const shouldStopSearch = () => {
+      return stopSearchSignals.get(sessionId) === true;
+    };
+
+    emitProgress("department-load", 5, "Starting course search...");
+
+    findProfessorsForCourse(
+      course_name,
+      department_number,
+      university_number,
+      (error, professors) => {
+        if (error) {
+          socket.emit("course-search-error", {
+            error: "Error searching for course professors",
+            details: error.message,
+          });
+          return;
+        }
+
+        if (shouldStopSearch()) {
+          return;
+        }
+
+        socket.emit("course-search-complete", {
+          course_name: course_name,
+          department_number: department_number,
+          university_number: university_number,
+          professors_count: professors.length,
+          professors: professors.map((prof) => ({
+            name: prof.name,
+            first_name: prof.lastName, // First/last names are swapped
+            last_name: prof.firstName,
+            department: prof.department,
+            university: prof.university,
+            profile_url: prof.profileURL,
+            num_ratings: prof.numRatings,
+          })),
         });
-    });
+
+        // Clean up skip and stop signals after search completes
+        skipProfessorLoadSignals.delete(sessionId);
+        skipCourseCheckSignals.delete(sessionId);
+        stopSearchSignals.delete(sessionId);
+      },
+      emitProgress,
+      shouldSkipProfessorLoad,
+      shouldSkipCourseCheck,
+      shouldStopSearch,
+    );
+  });
+
+  socket.on("skip-professors-load", (data) => {
+    const { sessionId, phase } = data;
+    console.log(
+      `Skip signal received for session: ${sessionId}, phase: ${phase}`,
+    );
+
+    // Set the appropriate skip signal based on the current phase
+    if (phase === "professor-load") {
+      skipProfessorLoadSignals.set(sessionId, true);
+    } else if (phase === "course-check") {
+      skipCourseCheckSignals.set(sessionId, true);
+    }
+  });
+
+  socket.on("stop-search", (data) => {
+    const { sessionId } = data;
+    console.log(`Stop search signal received for session: ${sessionId}`);
+    stopSearchSignals.set(sessionId, true);
+  });
+
+  socket.on("disconnect", async () => {
+    console.log("Client disconnected:", socket.id);
+
+    // Remove from client tracking
+    connectedClients.delete(socket.id);
+
+    // Stop active session of the socket
+    const sessionId = activeConnections.get(socket.id);
+    if (sessionId) {
+      console.log(
+        `Terminating active search ${sessionId} for disconnected client`,
+      );
+      stopSearchSignals.set(sessionId, true);
+
+      // Remove from tracking maps
+      activeConnections.delete(socket.id);
+      connectionTimestamps.delete(sessionId);
+    }
+
+    // Report number of clients still connected
+    console.log(`Clients connected: ${connectedClients.size}`);
+
+    // Check if no clients are connected and close persistent browser
+    if (connectedClients.size === 0) {
+      console.log("No clients connected, closing persistent browser...");
+      try {
+        await closePersistentBrowser();
+        console.log("Persistent browser closed successfully");
+      } catch (error) {
+        console.error("Error closing persistent browser:", error.message);
+      }
+    }
+  });
 });
 
-app.get('/course', function (req, res) {
-    const courseName = req.query.course_name;
-    const departmentNumber = req.query.department_number;
-    const universityNumber = req.query.university_number;
-    
-    if (!courseName || !departmentNumber || !universityNumber) {
-        return res.status(400).json({
-            error: 'Missing required parameters: course_name, department_number, and university_number are required'
-        });
-    }
-    
-    findProfessorsForCourse(courseName, departmentNumber, universityNumber, (error, professors) => {
-        if (error) {
-            console.error('Error finding professors for course:', error.message);
-            return res.status(500).json({
-                error: 'Error finding professors for the specified course',
-                details: error.message
-            });
-        }
-        
-        if (!professors || professors.length === 0) {
-            return res.status(404).json({
-                error: 'No professors found teaching the specified course',
-                course_name: courseName,
-                department_number: departmentNumber,
-                university_number: universityNumber
-            });
-        }
-        
-        // Format the response to include professor names and relevant information
-        const response = {
-            course_name: courseName,
-            department_number: departmentNumber,
-            university_number: universityNumber,
-            professors_count: professors.length,
-            professors: professors.map(prof => ({
-                name: prof.name,
-                first_name: prof.lastName,  // First/last names are swapped
-                last_name: prof.firstName,
-                department: prof.department,
-                university: prof.university,
-                profile_url: prof.profileURL,
-                num_ratings: prof.numRatings
-            }))
-        };
-        res.json(response);
+app.get("/professor", function (req, res) {
+  const fname = req.query.fname;
+  const lname = req.query.lname;
+  const university = req.query.university;
+
+  if (!fname || !lname || !university) {
+    return res.status(400).json({
+      error:
+        "Missing required parameters: fname, lname, and university are required",
     });
+  }
+
+  professorURL(fname, lname, university, (urlResponse) => {
+    if (!urlResponse || !urlResponse.URL) {
+      return res.status(404).json({
+        error: "Professor not found or error generating URL",
+        details: urlResponse
+          ? urlResponse.error
+          : "No response from URL generator",
+      });
+    }
+
+    console.log(`Fetching data for: ${urlResponse.URL}`);
+
+    professorData(urlResponse.URL, (data) => {
+      if (data.error) {
+        console.error("Error from professorData:", data.error);
+        return res.status(500).json({
+          error: "Error fetching professor data",
+          details: data.error,
+          status: data.status,
+        });
+      }
+
+      res.json({
+        URL: urlResponse.URL,
+        first_name: urlResponse.lname, // First/last names are swapped
+        last_name: urlResponse.fname,
+        university: urlResponse.university,
+        would_take_again: data.percentage,
+        difficulty: data.difficulty,
+        overall_quality: data.quality,
+        ratings: data.ratings,
+        summary: data.summary,
+      });
+    });
+  });
+});
+
+app.get("/course", function (req, res) {
+  const courseName = req.query.course_name;
+  const departmentNumber = req.query.department_number;
+  const universityNumber = req.query.university_number;
+
+  if (!courseName || !departmentNumber || !universityNumber) {
+    return res.status(400).json({
+      error:
+        "Missing required parameters: course_name, department_number, and university_number are required",
+    });
+  }
+
+  findProfessorsForCourse(
+    courseName,
+    departmentNumber,
+    universityNumber,
+    (error, professors) => {
+      if (error) {
+        console.error("Error finding professors for course:", error.message);
+        return res.status(500).json({
+          error: "Error finding professors for the specified course",
+          details: error.message,
+        });
+      }
+
+      if (!professors || professors.length === 0) {
+        return res.status(404).json({
+          error: "No professors found teaching the specified course",
+          course_name: courseName,
+          department_number: departmentNumber,
+          university_number: universityNumber,
+        });
+      }
+
+      // Format the response to include professor names and relevant information
+      const response = {
+        course_name: courseName,
+        department_number: departmentNumber,
+        university_number: universityNumber,
+        professors_count: professors.length,
+        professors: professors.map((prof) => ({
+          name: prof.name,
+          first_name: prof.lastName, // First/last names are swapped
+          last_name: prof.firstName,
+          department: prof.department,
+          university: prof.university,
+          profile_url: prof.profileURL,
+          num_ratings: prof.numRatings,
+        })),
+      };
+      res.json(response);
+    },
+  );
 });
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-    console.log(`Server running on ${PORT}`);
+  console.log(`Server running on ${PORT}`);
 });
 
 // Shutdown handling
 const shutdown = async (signal) => {
-    console.log(`\nReceived ${signal}. Starting shutdown...`);
-    
-    // Clear cleanup interval
-    if (cleanupInterval) {
-        clearInterval(cleanupInterval);
+  console.log(`\nReceived ${signal}. Starting shutdown...`);
+
+  // Clear cleanup interval
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+  }
+
+  // Notify all connected clients about shutdown
+  io.emit("server_shutdown", { message: "Server is shutting down" });
+
+  // Stop accepting new connections
+  server.close(async (err) => {
+    if (err) {
+      console.error("Error closing server:", err);
+    } else {
+      console.log("HTTP server closed");
     }
 
-    // Notify all connected clients about shutdown
-    io.emit('server_shutdown', { message: 'Server is shutting down' });
-    
-    // Stop accepting new connections
-    server.close(async (err) => {
-        if (err) {
-            console.error('Error closing server:', err);
-        } else {
-            console.log('HTTP server closed');
-        }
-        
+    try {
+      // Clear connection tracking
+      activeConnections.clear();
+      connectionTimestamps.clear();
+
+      // Disconnect all socket clients
+      const sockets = await io.fetchSockets();
+      await Promise.all(sockets.map((socket) => socket.disconnect(true)));
+      console.log("All socket connections terminated");
+
+      // Close all browser instances with timeout protection
+      console.log("Closing browser instances...");
+      try {
+        await Promise.race([
+          closeBrowser(),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Browser cleanup timeout")),
+              20000,
+            ),
+          ),
+        ]);
+        console.log("Browser cleanup completed");
+      } catch (browserError) {
+        console.error(
+          "Browser cleanup failed or timed out:",
+          browserError.message,
+        );
+      }
+
+      // Run garbage collection if available
+      if (global.gc) {
         try {
-            // Clear connection tracking
-            activeConnections.clear();
-            connectionTimestamps.clear();
-
-            // Disconnect all socket clients
-            const sockets = await io.fetchSockets();
-            await Promise.all(sockets.map(socket => socket.disconnect(true)));
-            console.log('All socket connections terminated');
-
-            // Close all browser instances with timeout protection
-            console.log('Closing browser instances...');
-            try {
-                await Promise.race([
-                    closeBrowser(),
-                    new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Browser cleanup timeout')), 20000)
-                    )
-                ]);
-                console.log('Browser cleanup completed');
-            } catch (browserError) {
-                console.error('Browser cleanup failed or timed out:', browserError.message);
-            }
-            
-            // Run garbage collection if available
-            if (global.gc) {
-                try {
-                    global.gc();
-                    console.log('Forced garbage collection completed');
-                } catch (gcError) {
-                    console.warn('Failed to force garbage collection:', gcError.message);
-                }
-            }
-
-            console.log('Shutdown completed');
-            process.exit(0);
-        } catch (error) {
-            console.error('Error during shutdown:', error);
-            process.exit(1);
+          global.gc();
+          console.log("Forced garbage collection completed");
+        } catch (gcError) {
+          console.warn("Failed to force garbage collection:", gcError.message);
         }
-    });
-    
-    // Force exit if shutdown takes too long
-    setTimeout(() => {
-        console.error('Shutdown timed out after 60 seconds, forcing exit');
-        process.exit(1);
-    }, 60000);
+      }
+
+      console.log("Shutdown completed");
+      process.exit(0);
+    } catch (error) {
+      console.error("Error during shutdown:", error);
+      process.exit(1);
+    }
+  });
+
+  // Force exit if shutdown takes too long
+  setTimeout(() => {
+    console.error("Shutdown timed out after 60 seconds, forcing exit");
+    process.exit(1);
+  }, 60000);
 };
 
 // Register signal handlers for graceful shutdown
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 // Handle uncaught exceptions and unhandled rejections
-process.on('uncaughtException', async (error) => {
-    console.error('Uncaught Exception:', error);
-    await shutdown('uncaughtException');
+process.on("uncaughtException", async (error) => {
+  console.error("Uncaught Exception:", error);
+  await shutdown("uncaughtException");
 });
 
-process.on('unhandledRejection', async (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    await shutdown('unhandledRejection');
+process.on("unhandledRejection", async (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  await shutdown("unhandledRejection");
 });
 
-module.exports = app
+module.exports = app;

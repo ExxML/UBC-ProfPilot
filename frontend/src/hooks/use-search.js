@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { io } from 'socket.io-client';
-import { API_BACKEND_URL } from '../config.js';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { io } from "socket.io-client";
+import { API_BACKEND_URL } from "../config.js";
 
 /**
  * Shared search hook for WebSocket-based searches with timeout handling
@@ -19,15 +19,19 @@ export const useSearch = (config) => {
     errorEvent,
     completeMessage,
     errorMessage,
-    timeoutErrorMessage
+    timeoutErrorMessage,
   } = config;
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [progress, setProgress] = useState({ percentage: 0, phase: 'idle', message: 'Ready to search' });
+  const [progress, setProgress] = useState({
+    percentage: 0,
+    phase: "idle",
+    message: "Ready to search",
+  });
   const [searchDurationMs, setSearchDurationMs] = useState(null);
-  
+
   const socketRef = useRef(null);
   const sessionIdRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -45,21 +49,37 @@ export const useSearch = (config) => {
     return () => {
       setError(timeoutErrorMessage);
       setLoading(false);
-      setProgress({ percentage: 0, phase: 'timeout', message: 'Request timed out' });
+      setProgress({
+        percentage: 0,
+        phase: "timeout",
+        message: "Request timed out",
+      });
     };
   }, [timeoutErrorMessage]);
 
   const createInitTimeoutHandler = useCallback(() => {
     return () => {
-      setError(`API initialization timed out after 4 minutes; the service may be experiencing an outage. Please reload the page and try again.`);
+      setError(
+        `API initialization timed out after 4 minutes; the service may be experiencing an outage. Please reload the page and try again.`,
+      );
       setLoading(false);
-      setProgress({ percentage: 0, phase: 'error', message: 'Initialization timeout - no response from API' });
+      setProgress({
+        percentage: 0,
+        phase: "error",
+        message: "Initialization timeout - no response from API",
+      });
     };
   }, []);
 
   const handleInactivityTimeout = useCallback(() => {
-    setProgress(prev => ({ ...prev, message: 'Waiting 1 more minute for backend response...' }));
-    timeoutRef.current = setTimeout(createTimeoutHandler(), FINAL_SEARCH_TIMEOUT);
+    setProgress((prev) => ({
+      ...prev,
+      message: "Waiting 1 more minute for backend response...",
+    }));
+    timeoutRef.current = setTimeout(
+      createTimeoutHandler(),
+      FINAL_SEARCH_TIMEOUT,
+    );
   }, [createTimeoutHandler]);
 
   // Clear all timers utility
@@ -95,14 +115,17 @@ export const useSearch = (config) => {
 
     const handleProgress = (data) => {
       clearAllTimers();
-      
+
       lastMessageTimeRef.current = Date.now();
-      inactivityTimeoutRef.current = setTimeout(handleInactivityTimeout, SEARCH_TIMEOUT);
+      inactivityTimeoutRef.current = setTimeout(
+        handleInactivityTimeout,
+        SEARCH_TIMEOUT,
+      );
 
       setProgress({
         percentage: data.percentage,
         phase: data.phase,
-        message: data.message
+        message: data.message,
       });
     };
 
@@ -110,7 +133,11 @@ export const useSearch = (config) => {
       setResult(data);
       const end = performance.now();
       setSearchDurationMs(end - (startTimeRef.current || end));
-      setProgress({ percentage: 100, phase: 'complete', message: completeMessage });
+      setProgress({
+        percentage: 100,
+        phase: "complete",
+        message: completeMessage,
+      });
 
       setTimeout(() => {
         setLoading(false);
@@ -122,7 +149,7 @@ export const useSearch = (config) => {
     const handleError = (data) => {
       setError(data.error);
       setLoading(false);
-      setProgress({ percentage: 0, phase: 'error', message: errorMessage });
+      setProgress({ percentage: 0, phase: "error", message: errorMessage });
       clearAllTimers();
     };
 
@@ -141,14 +168,22 @@ export const useSearch = (config) => {
       startTimeRef.current = null;
       clearAllTimers();
     };
-  }, [progressEvent, completeEvent, errorEvent, completeMessage, errorMessage, handleInactivityTimeout, clearAllTimers]);
+  }, [
+    progressEvent,
+    completeEvent,
+    errorEvent,
+    completeMessage,
+    errorMessage,
+    handleInactivityTimeout,
+    clearAllTimers,
+  ]);
 
   // Stop search handler
   const stopSearch = useCallback(() => {
     if (socketRef.current && sessionIdRef.current) {
-      console.log('Sending stop signal to backend...');
-      socketRef.current.emit('stop-search', {
-        sessionId: sessionIdRef.current
+      console.log("Sending stop signal to backend...");
+      socketRef.current.emit("stop-search", {
+        sessionId: sessionIdRef.current,
       });
     }
 
@@ -156,7 +191,7 @@ export const useSearch = (config) => {
     setLoading(false);
     setError(null);
     setResult(null);
-    setProgress({ percentage: 0, phase: 'idle', message: 'Search stopped' });
+    setProgress({ percentage: 0, phase: "idle", message: "Search stopped" });
     setSearchDurationMs(null);
     startTimeRef.current = null;
   }, [clearAllTimers]);
@@ -178,14 +213,17 @@ export const useSearch = (config) => {
 
     const handleProgress = (data) => {
       clearAllTimers();
-      
+
       lastMessageTimeRef.current = Date.now();
-      inactivityTimeoutRef.current = setTimeout(handleInactivityTimeout, SEARCH_TIMEOUT);
+      inactivityTimeoutRef.current = setTimeout(
+        handleInactivityTimeout,
+        SEARCH_TIMEOUT,
+      );
 
       setProgress({
         percentage: data.percentage,
         phase: data.phase,
-        message: data.message
+        message: data.message,
       });
     };
 
@@ -193,7 +231,11 @@ export const useSearch = (config) => {
       setResult(data);
       const end = performance.now();
       setSearchDurationMs(end - (startTimeRef.current || end));
-      setProgress({ percentage: 100, phase: 'complete', message: completeMessage });
+      setProgress({
+        percentage: 100,
+        phase: "complete",
+        message: completeMessage,
+      });
 
       setTimeout(() => {
         setLoading(false);
@@ -205,7 +247,7 @@ export const useSearch = (config) => {
     const handleError = (data) => {
       setError(data.error);
       setLoading(false);
-      setProgress({ percentage: 0, phase: 'error', message: errorMessage });
+      setProgress({ percentage: 0, phase: "error", message: errorMessage });
       clearAllTimers();
     };
 
@@ -214,42 +256,62 @@ export const useSearch = (config) => {
     socket.on(errorEvent, handleError);
 
     return socket;
-  }, [progressEvent, completeEvent, errorEvent, completeMessage, errorMessage, handleInactivityTimeout, clearAllTimers]);
+  }, [
+    progressEvent,
+    completeEvent,
+    errorEvent,
+    completeMessage,
+    errorMessage,
+    handleInactivityTimeout,
+    clearAllTimers,
+  ]);
 
   // Start search handler
-  const startSearch = useCallback((eventName, payload, initialMessage) => {
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setProgress({ percentage: 0, phase: payload.phase || 'initializing', message: initialMessage });
-
-    clearAllTimers();
-    startTimeRef.current = performance.now();
-    setSearchDurationMs(null);
-
-    initTimeoutRef.current = setTimeout(createInitTimeoutHandler(), INIT_TIMEOUT);
-
-    // Check if socket is connected, if not establish connection
-    if (!socketRef.current || !socketRef.current.connected) {
-      console.log('No socket connection found, establishing new connection...');
-      establishSocketConnection();
-    }
-
-    if (socketRef.current) {
-      lastMessageTimeRef.current = Date.now();
-      socketRef.current.emit(eventName, {
-        ...payload,
-        sessionId: sessionIdRef.current
+  const startSearch = useCallback(
+    (eventName, payload, initialMessage) => {
+      setLoading(true);
+      setError(null);
+      setResult(null);
+      setProgress({
+        percentage: 0,
+        phase: payload.phase || "initializing",
+        message: initialMessage,
       });
-    }
-  }, [clearAllTimers, createInitTimeoutHandler, establishSocketConnection]);
+
+      clearAllTimers();
+      startTimeRef.current = performance.now();
+      setSearchDurationMs(null);
+
+      initTimeoutRef.current = setTimeout(
+        createInitTimeoutHandler(),
+        INIT_TIMEOUT,
+      );
+
+      // Check if socket is connected, if not establish connection
+      if (!socketRef.current || !socketRef.current.connected) {
+        console.log(
+          "No socket connection found, establishing new connection...",
+        );
+        establishSocketConnection();
+      }
+
+      if (socketRef.current) {
+        lastMessageTimeRef.current = Date.now();
+        socketRef.current.emit(eventName, {
+          ...payload,
+          sessionId: sessionIdRef.current,
+        });
+      }
+    },
+    [clearAllTimers, createInitTimeoutHandler, establishSocketConnection],
+  );
 
   // Emit custom event (for skip actions, etc.)
   const emitEvent = useCallback((eventName, payload) => {
     if (socketRef.current && sessionIdRef.current) {
       socketRef.current.emit(eventName, {
         ...payload,
-        sessionId: sessionIdRef.current
+        sessionId: sessionIdRef.current,
       });
     }
   }, []);
@@ -264,6 +326,6 @@ export const useSearch = (config) => {
     stopSearch,
     emitEvent,
     setProgress,
-    establishSocketConnection
+    establishSocketConnection,
   };
 };

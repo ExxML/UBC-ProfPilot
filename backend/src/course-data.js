@@ -1,422 +1,535 @@
-const cheerio = require('cheerio');
-const { getBrowser, createContext, createPage, navigate, safeClose } = require('./browser');
-const axios = require('axios');
+const cheerio = require("cheerio");
+const {
+  getBrowser,
+  createContext,
+  createPage,
+  navigate,
+  safeClose,
+} = require("./browser");
+const axios = require("axios");
 
 // Create axios instance with default settings
 const axiosInstance = axios.create();
 
 // Function to search for all professors in a department at a university
-async function searchProfessorsByDepartment(universityNumber, departmentNumber, callback, progressCallback = null, shouldSkipProfessorLoad = null, shouldStopSearch = null) {
-    const searchURL = `https://www.ratemyprofessors.com/search/professors/${universityNumber}?q=*&did=${departmentNumber}`;
-    console.log(`Fetching URL: ${searchURL}`);
-    
-    if (progressCallback) {
-        progressCallback('department-load', 10, 'Loading department page...');
-    }
+async function searchProfessorsByDepartment(
+  universityNumber,
+  departmentNumber,
+  callback,
+  progressCallback = null,
+  shouldSkipProfessorLoad = null,
+  shouldStopSearch = null,
+) {
+  const searchURL = `https://www.ratemyprofessors.com/search/professors/${universityNumber}?q=*&did=${departmentNumber}`;
+  console.log(`Fetching URL: ${searchURL}`);
 
+  if (progressCallback) {
+    progressCallback("department-load", 10, "Loading department page...");
+  }
+
+  try {
+    // Use browser pool
+    const browser = await getBrowser();
+
+    // Start timing
+    const profLoadTimerLabel = `Professor Load Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.time(profLoadTimerLabel);
+
+    // Create context with resource blocking and caching
+    let context;
+    let page;
     try {
-        // Use browser pool
-        const browser = await getBrowser();
-        
-        // Start timing
-        const profLoadTimerLabel = `Professor Load Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        console.time(profLoadTimerLabel);
-        
-        // Create context with resource blocking and caching
-        let context;
-        let page;
+      context = await createContext(browser);
+      page = await createPage(context);
+
+      await navigate(page, searchURL);
+
+      if (progressCallback) {
+        progressCallback(
+          "department-load",
+          20,
+          "Analyzing department professors...",
+        );
+      }
+
+      // Click "Load More" button until all professors are loaded
+      // Try to get total number of professors from any header/indicator
+      let totalProfessors = 0;
+      try {
+        // Look for any element that might contain the total count
+        const countElement = await page.$(
+          "[class*='results'], [class*='Results'], [class*='count'], [class*='Count']",
+        );
+        if (countElement) {
+          const countText = await page.evaluate(
+            (el) => el.textContent,
+            countElement,
+          );
+          const match = countText.match(/(\d+)/);
+          if (match) {
+            totalProfessors = parseInt(match[1]);
+          }
+        }
+      } catch (e) {
+        // If can't find the count, use fallback
+      }
+
+      const maxAttempts = Math.ceil((totalProfessors / 5) * 1.5) || 100; // Estimate based on professors per page, fallback to 100
+      console.log("Estimated total professors:", totalProfessors || "unknown");
+
+      let loadMoreVisible = true;
+      let currentProfessorsCount = 0;
+      let attemptCount = 0;
+      let cachedButtonSelector = null; // Cache the working button selector
+
+      console.log("\nStep 1: Starting to load all professors...");
+
+      if (progressCallback) {
+        progressCallback(
+          "professor-load",
+          25,
+          `Loading professors from department...`,
+        );
+      }
+
+      // First, try to find and cache the working button selector
+      const findButtonSelector = async () => {
+        if (cachedButtonSelector) {
+          const button = await page.$(cachedButtonSelector);
+          if (button) return button;
+        }
+
+        // Try to find the button using the most common selectors first
+        const commonSelectors = [
+          'button[class*="loadMore"]',
+          'button[class*="LoadMore"]',
+          'button[class*="PaginationButton"]',
+          'button[class*="Buttons__Button"]',
+          'button[class*="pagination"]',
+          'button[class*="Pagination"]',
+        ];
+
+        for (const selector of commonSelectors) {
+          try {
+            const button = await page.$(selector);
+            if (button) {
+              cachedButtonSelector = selector;
+              return button;
+            }
+          } catch (e) {
+            // Continue to next selector
+          }
+        }
+
+        // Fallback to more comprehensive search and coerce to an element handle
+        const jsHandle = await page.evaluateHandle(() => {
+          const buttons = Array.from(document.querySelectorAll("button"));
+          return (
+            buttons.find(
+              (el) =>
+                el.textContent &&
+                (el.textContent.includes("Load More") ||
+                  el.textContent.includes("Show More") ||
+                  el.textContent.includes("More")),
+            ) || null
+          );
+        });
+        return jsHandle.asElement();
+      };
+
+      while (loadMoreVisible && attemptCount < maxAttempts) {
+        // && currentProfessorsCount < 195) {
         try {
-            context = await createContext(browser);
-            page = await createPage(context);
-            
-            await navigate(page, searchURL);
-            
-            if (progressCallback) {
-                progressCallback('department-load', 20, 'Analyzing department professors...');
-            }
-            
-            // Click "Load More" button until all professors are loaded
-            // Try to get total number of professors from any header/indicator
-            let totalProfessors = 0;
-            try {
-                // Look for any element that might contain the total count
-                const countElement = await page.$("[class*='results'], [class*='Results'], [class*='count'], [class*='Count']");
-                if (countElement) {
-                    const countText = await page.evaluate(el => el.textContent, countElement);
-                    const match = countText.match(/(\d+)/);
-                    if (match) {
-                        totalProfessors = parseInt(match[1]);
-                    }
-                }
-            } catch (e) {
-                // If can't find the count, use fallback
-            }
-            
-            const maxAttempts = Math.ceil(totalProfessors / 5 * 1.5) || 100; // Estimate based on professors per page, fallback to 100
-            console.log('Estimated total professors:', totalProfessors || 'unknown');
-            
-            let loadMoreVisible = true;
-            let currentProfessorsCount = 0;
-            let attemptCount = 0;
-            let cachedButtonSelector = null; // Cache the working button selector
-            
-            console.log('\nStep 1: Starting to load all professors...');
-            
-            if (progressCallback) {
-                progressCallback('professor-load', 25, `Loading professors from department...`);
-            }
-            
-            // First, try to find and cache the working button selector
-            const findButtonSelector = async () => {
-                if (cachedButtonSelector) {
-                    const button = await page.$(cachedButtonSelector);
-                    if (button) return button;
-                }
-                
-                // Try to find the button using the most common selectors first
-                const commonSelectors = [
-                    'button[class*="loadMore"]',
-                    'button[class*="LoadMore"]',
-                    'button[class*="PaginationButton"]',
-                    'button[class*="Buttons__Button"]',
-                    'button[class*="pagination"]',
-                    'button[class*="Pagination"]'
-                ];
-                
-                for (const selector of commonSelectors) {
-                    try {
-                        const button = await page.$(selector);
-                        if (button) {
-                            cachedButtonSelector = selector;
-                            return button;
-                        }
-                    } catch (e) {
-                        // Continue to next selector
-                    }
-                }
-                
-                // Fallback to more comprehensive search and coerce to an element handle
-                const jsHandle = await page.evaluateHandle(() => {
-                    const buttons = Array.from(document.querySelectorAll('button'));
-                    return buttons.find(el => 
-                        el.textContent && (
-                            el.textContent.includes('Load More') ||
-                            el.textContent.includes('Show More') ||
-                            el.textContent.includes('More')
-                        )
-                    ) || null;
-                });
-                return jsHandle.asElement();
-            };
-            
-            while (loadMoreVisible && attemptCount < maxAttempts) { // && currentProfessorsCount < 195) {
+          // Check if stop was requested
+          if (shouldStopSearch && shouldStopSearch()) {
+            console.log("Stop signal received, cancelling course search...");
+            return;
+          }
+
+          // Check if skip was requested for professor loading phase
+          if (shouldSkipProfessorLoad && shouldSkipProfessorLoad()) {
+            console.log("Skip signal received, stopping professor load...");
+            loadMoreVisible = false;
+            break;
+          }
+
+          // Quick count of current professors
+          currentProfessorsCount = await page.$$eval(
+            "a.TeacherCard__StyledTeacherCard-syjs0d-0",
+            (elements) => elements.length,
+          );
+
+          console.log(
+            `Attempt ${attemptCount}: ${currentProfessorsCount} professors loaded`,
+          );
+
+          if (progressCallback && totalProfessors > 0) {
+            const progress = Math.min(
+              25 + (currentProfessorsCount / totalProfessors) * 25,
+              50,
+            );
+            progressCallback(
+              "professor-load",
+              progress,
+              `Loading professors: ${currentProfessorsCount}/${totalProfessors || "?"}`,
+            );
+          }
+
+          // Find and click the load more button (get fresh reference each time)
+          try {
+            const loadMoreButton = await findButtonSelector();
+
+            if (loadMoreButton) {
+              // Quick visibility check
+              const isVisible = await page.evaluate((button) => {
+                if (!button) return false;
+                const rect = button.getBoundingClientRect();
+                const style = window.getComputedStyle(button);
+                return (
+                  rect.width > 0 &&
+                  rect.height > 0 &&
+                  style.display !== "none" &&
+                  style.visibility !== "hidden" &&
+                  style.opacity !== "0"
+                );
+              }, loadMoreButton);
+
+              if (isVisible) {
+                // Click the button using page.evaluate to bypass pointer events
+                await page.evaluate((selector) => {
+                  const button = document.querySelector(selector);
+                  if (button) button.click();
+                }, cachedButtonSelector || 'button[class*="loadMore"]');
+                attemptCount++;
+
+                // Quick check if more content is loading
                 try {
-                    // Check if stop was requested
-                    if (shouldStopSearch && shouldStopSearch()) {
-                        console.log('Stop signal received, cancelling course search...');
-                        return;
-                    }
-                    
-                    // Check if skip was requested for professor loading phase
-                    if (shouldSkipProfessorLoad && shouldSkipProfessorLoad()) {
-                        console.log('Skip signal received, stopping professor load...');
-                        loadMoreVisible = false;
-                        break;
-                    }
-                    
-                    // Quick count of current professors
-                    currentProfessorsCount = await page.$$eval("a.TeacherCard__StyledTeacherCard-syjs0d-0", elements => elements.length);
-                    
-                    console.log(`Attempt ${attemptCount}: ${currentProfessorsCount} professors loaded`);
-                    
-                    if (progressCallback && totalProfessors > 0) {
-                        const progress = Math.min(25 + (currentProfessorsCount / totalProfessors) * 25, 50);
-                        progressCallback('professor-load', progress, `Loading professors: ${currentProfessorsCount}/${totalProfessors || '?'}`);
-                    }
-                    
-                    // Find and click the load more button (get fresh reference each time)
-                    try {
-                        const loadMoreButton = await findButtonSelector();
-                        
-                        if (loadMoreButton) {
-                            // Quick visibility check
-                            const isVisible = await page.evaluate(button => {
-                                if (!button) return false;
-                                const rect = button.getBoundingClientRect();
-                                const style = window.getComputedStyle(button);
-                                return rect.width > 0 && rect.height > 0 && 
-                                    style.display !== 'none' && 
-                                    style.visibility !== 'hidden' && 
-                                    style.opacity !== '0';
-                            }, loadMoreButton);
-                            
-                            if (isVisible) {
-                                // Click the button using page.evaluate to bypass pointer events
-                                await page.evaluate((selector) => {
-                                    const button = document.querySelector(selector);
-                                    if (button) button.click();
-                                }, cachedButtonSelector || 'button[class*="loadMore"]');
-                                attemptCount++;
-                                
-                                // Quick check if more content is loading
-                                try {
-                                    // Wait for any loading indicators to disappear
-                                    await page.waitForFunction(
-                                        () => {
-                                            // Check if there are any loading spinners or indicators
-                                            const loadingIndicators = document.querySelectorAll('[class*="loading"], [class*="Loading"], [class*="spinner"], [class*="Spinner"]');
-                                            return loadingIndicators.length === 0;
-                                        },
-                                        { timeout: 2000 }
-                                    );
-                                    console.log('Load More button clicked')
-                                } catch (e) {
-                                    // If timeout, continue anyway but wait a bit longer in case content is still loading
-                                    console.log('Load More button clicked but timed out')
-                                    await new Promise(resolve => setTimeout(resolve, 300));
-                                }
-                            } else {
-                                console.log('Load More button no longer visible');
-                                loadMoreVisible = false;
-                            }
-                        } else {
-                            console.log('Load More button not found');
-                            loadMoreVisible = false;
-                        }
-                    } catch (clickError) {
-                        loadMoreVisible = false;
-                        if (clickError.message.includes("Timeout")) {
-                            console.log('Load More button timeout reached, stop loading new data');
-                            break;
-                        } else {
-                            console.log('Error clicking Load More button:', clickError.message);
-                        }
-                    }
-                } catch (error) {
-                    console.log('Error while loading more professors:', error.message);
-
-                    // Break out of loop if browser/page/context has been closed
-                    if (error.message.includes("Target page, context or browser has been closed")) {
-                        console.log('Browser/page/context closed, stop loading new data');
-                        loadMoreVisible = false;
-                        break;
-                    }
-
-                    attemptCount++;
-                    // More lenient error handling - only stop after many errors
-                    if (attemptCount > 10 && error.message.includes('click')) {
-                        console.log('Multiple click errors occurred, stopping.');
-                        loadMoreVisible = false;
-                    }
+                  // Wait for any loading indicators to disappear
+                  await page.waitForFunction(
+                    () => {
+                      // Check if there are any loading spinners or indicators
+                      const loadingIndicators = document.querySelectorAll(
+                        '[class*="loading"], [class*="Loading"], [class*="spinner"], [class*="Spinner"]',
+                      );
+                      return loadingIndicators.length === 0;
+                    },
+                    { timeout: 2000 },
+                  );
+                  console.log("Load More button clicked");
+                } catch (e) {
+                  // If timeout, continue anyway but wait a bit longer in case content is still loading
+                  console.log("Load More button clicked but timed out");
+                  await new Promise((resolve) => setTimeout(resolve, 300));
                 }
+              } else {
+                console.log("Load More button no longer visible");
+                loadMoreVisible = false;
+              }
+            } else {
+              console.log("Load More button not found");
+              loadMoreVisible = false;
             }
-            
-            if (attemptCount >= maxAttempts) {
-                console.log(`Reached maximum attempts (${maxAttempts}), stopping.`);
+          } catch (clickError) {
+            loadMoreVisible = false;
+            if (clickError.message.includes("Timeout")) {
+              console.log(
+                "Load More button timeout reached, stop loading new data",
+              );
+              break;
+            } else {
+              console.log(
+                "Error clicking Load More button:",
+                clickError.message,
+              );
             }
+          }
+        } catch (error) {
+          console.log("Error while loading more professors:", error.message);
 
-            if (totalProfessors > 0 && totalProfessors > currentProfessorsCount) {
-                console.log('WARNING: Not all professors were successfully loaded')
-            }
-            
-            // Get updated count of current professors
-            currentProfessorsCount = await page.$$eval("a.TeacherCard__StyledTeacherCard-syjs0d-0", elements => elements.length);
-            console.log(`Finished loading all professors. Total: ${currentProfessorsCount} professors in ${attemptCount} attempts`);
-            
-            // Get the page content after all professors are loaded
-            const html = await page.content();
-            console.timeEnd(profLoadTimerLabel);
-            
-            // Parse the HTML to extract professor information
-            const $ = cheerio.load(html);
-            const liSelector = "a.TeacherCard__StyledTeacherCard-syjs0d-0";
-            const cards = $(liSelector);
-            
-            console.log(`Found ${cards.length} professor cards in department`);
+          // Break out of loop if browser/page/context has been closed
+          if (
+            error.message.includes(
+              "Target page, context or browser has been closed",
+            )
+          ) {
+            console.log("Browser/page/context closed, stop loading new data");
+            loadMoreVisible = false;
+            break;
+          }
 
-            const professors = [];
-            
-            // Process each professor card
-            $(liSelector).each(function(index) {
-                const card = $(this);
-                const nameElement = card.find("div.CardName__StyledCardName-sc-1gyrgim-0");
-                const name = nameElement.text().trim();
-                
-                // Get the department information
-                const departmentElement = card.find("div.CardSchool__Department-sc-19lmz2k-0");
-                const departmentText = departmentElement.text().trim();
-                
-                // Get the university information
-                const universityElement = card.find("div.CardSchool__School-sc-19lmz2k-1");
-                const universityText = universityElement.text().trim();
-                
-                const profPath = card.attr('href');
-                
-                if (name && profPath) {
-                    const profURL = `https://www.ratemyprofessors.com${profPath}`;
-                    
-                    // Parse name (RMP shows Last, First format)
-                    const nameParts = name.split(' ');
-                    const lastName = nameParts[0].replace(',', '');
-                    const firstName = nameParts.slice(1).join(' ');
-                    
-                    professors.push({
-                        name: name,
-                        firstName: firstName,
-                        lastName: lastName,
-                        department: departmentText,
-                        university: universityText,
-                        profileURL: profURL
-                    });
-                    
-                    console.log(`Found professor: ${name} - ${profURL}`);
-                }
-            });
-            
-            console.log(`Total professors found: ${professors.length}`);
-            callback(null, professors);
-        } finally {
-            // Ensure proper context cleanup
-            if (context) {
-                try {
-                    // Close all pages first
-                    const pages = await context.pages();
-                    await Promise.all(pages.map(page => safeClose(page, 'page')));
-                    // Then close context
-                    await safeClose(context, 'context');
-                } catch (error) {
-                    console.warn('Error during context cleanup in course-data:', error.message);
-                }
-            }
+          attemptCount++;
+          // More lenient error handling - only stop after many errors
+          if (attemptCount > 10 && error.message.includes("click")) {
+            console.log("Multiple click errors occurred, stopping.");
+            loadMoreVisible = false;
+          }
         }
-        
-    } catch (error) {
-        console.error('Error in searchProfessorsByDepartment:', error.message);
-        if (error.response) {
-            console.error('Response status:', error.response.status);
-            if (error.response.status === 403 || error.response.status === 429) {
-                console.error('You have been blocked by RateMyProfessors. Try again later.');
-            }
+      }
+
+      if (attemptCount >= maxAttempts) {
+        console.log(`Reached maximum attempts (${maxAttempts}), stopping.`);
+      }
+
+      if (totalProfessors > 0 && totalProfessors > currentProfessorsCount) {
+        console.log("WARNING: Not all professors were successfully loaded");
+      }
+
+      // Get updated count of current professors
+      currentProfessorsCount = await page.$$eval(
+        "a.TeacherCard__StyledTeacherCard-syjs0d-0",
+        (elements) => elements.length,
+      );
+      console.log(
+        `Finished loading all professors. Total: ${currentProfessorsCount} professors in ${attemptCount} attempts`,
+      );
+
+      // Get the page content after all professors are loaded
+      const html = await page.content();
+      console.timeEnd(profLoadTimerLabel);
+
+      // Parse the HTML to extract professor information
+      const $ = cheerio.load(html);
+      const liSelector = "a.TeacherCard__StyledTeacherCard-syjs0d-0";
+      const cards = $(liSelector);
+
+      console.log(`Found ${cards.length} professor cards in department`);
+
+      const professors = [];
+
+      // Process each professor card
+      $(liSelector).each(function (index) {
+        const card = $(this);
+        const nameElement = card.find(
+          "div.CardName__StyledCardName-sc-1gyrgim-0",
+        );
+        const name = nameElement.text().trim();
+
+        // Get the department information
+        const departmentElement = card.find(
+          "div.CardSchool__Department-sc-19lmz2k-0",
+        );
+        const departmentText = departmentElement.text().trim();
+
+        // Get the university information
+        const universityElement = card.find(
+          "div.CardSchool__School-sc-19lmz2k-1",
+        );
+        const universityText = universityElement.text().trim();
+
+        const profPath = card.attr("href");
+
+        if (name && profPath) {
+          const profURL = `https://www.ratemyprofessors.com${profPath}`;
+
+          // Parse name (RMP shows Last, First format)
+          const nameParts = name.split(" ");
+          const lastName = nameParts[0].replace(",", "");
+          const firstName = nameParts.slice(1).join(" ");
+
+          professors.push({
+            name: name,
+            firstName: firstName,
+            lastName: lastName,
+            department: departmentText,
+            university: universityText,
+            profileURL: profURL,
+          });
+
+          console.log(`Found professor: ${name} - ${profURL}`);
         }
-        callback(error, null);
+      });
+
+      console.log(`Total professors found: ${professors.length}`);
+      callback(null, professors);
+    } finally {
+      // Ensure proper context cleanup
+      if (context) {
+        try {
+          // Close all pages first
+          const pages = await context.pages();
+          await Promise.all(pages.map((page) => safeClose(page, "page")));
+          // Then close context
+          await safeClose(context, "context");
+        } catch (error) {
+          console.warn(
+            "Error during context cleanup in course-data:",
+            error.message,
+          );
+        }
+      }
     }
+  } catch (error) {
+    console.error("Error in searchProfessorsByDepartment:", error.message);
+    if (error.response) {
+      console.error("Response status:", error.response.status);
+      if (error.response.status === 403 || error.response.status === 429) {
+        console.error(
+          "You have been blocked by RateMyProfessors. Try again later.",
+        );
+      }
+    }
+    callback(error, null);
+  }
 }
 
 // Function to find the number of ratings a professor has for a specific course (scraped from page source)
 async function getNumCourseRatings(profURL, courseCode) {
-    try {
-        // Fetch the page HTML using the configured axios instance
-        const { data: html } = await axiosInstance.get(profURL);
+  try {
+    // Fetch the page HTML using the configured axios instance
+    const { data: html } = await axiosInstance.get(profURL);
 
-        // Load HTML into cheerio
-        const $ = cheerio.load(html);
+    // Load HTML into cheerio
+    const $ = cheerio.load(html);
 
-        // Extract raw HTML text for searching
-        const pageText = $.html();
+    // Extract raw HTML text for searching
+    const pageText = $.html();
 
-        // Build regex to match courseName + courseCount pairs
-        const regex = new RegExp(
-            `"courseName":"${courseCode}"\\s*,\\s*"courseCount":(\\d+)`,
-            "i"
-        );
+    // Build regex to match courseName + courseCount pairs
+    const regex = new RegExp(
+      `"courseName":"${courseCode}"\\s*,\\s*"courseCount":(\\d+)`,
+      "i",
+    );
 
-        const match = pageText.match(regex);
+    const match = pageText.match(regex);
 
-        // If found, return the count as a number
-        return match ? parseInt(match[1], 10) : 0;
-    } catch (err) {
-        console.error(`Error fetching or parsing ${profURL}:`, err.message);
-        return 0;
-    }
+    // If found, return the count as a number
+    return match ? parseInt(match[1], 10) : 0;
+  } catch (err) {
+    console.error(`Error fetching or parsing ${profURL}:`, err.message);
+    return 0;
+  }
 }
 
 // Main function to find professors with ratings for a specific course
-async function findProfessorsForCourse(courseName, departmentNumber, universityNumber, callback, progressCallback = null, shouldSkipProfessorLoad = null, shouldSkipCourseCheck = null, shouldStopSearch = null) {
-    console.log(`\nSearching for professors with ratings for ${courseName} in department ${departmentNumber} at university ${universityNumber}`);
-    const timerLabel = `Total Course Search Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    console.time(timerLabel);
-    try {
-        // Step 1: Get all professors in the department
-        searchProfessorsByDepartment(universityNumber, departmentNumber, async (error, professors) => {
-            if (error) {
-                return callback(error, null);
-            }
-            
-            if (!professors || professors.length === 0) {
-                return callback(new Error('No professors found in the specified department'), null);
-            }
-            
-            console.log(`\nStep 2: Checking ${professors.length} professors for course ${courseName}...`);
-            
-            if (progressCallback) {
-                progressCallback('course-check', 55, `Found ${professors.length} professors, checking for course ratings...`);
-            }
-            
-            const professorsWithCourse = [];
-            let processedCount = 0;
+async function findProfessorsForCourse(
+  courseName,
+  departmentNumber,
+  universityNumber,
+  callback,
+  progressCallback = null,
+  shouldSkipProfessorLoad = null,
+  shouldSkipCourseCheck = null,
+  shouldStopSearch = null,
+) {
+  console.log(
+    `\nSearching for professors with ratings for ${courseName} in department ${departmentNumber} at university ${universityNumber}`,
+  );
+  const timerLabel = `Total Course Search Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  console.time(timerLabel);
+  try {
+    // Step 1: Get all professors in the department
+    searchProfessorsByDepartment(
+      universityNumber,
+      departmentNumber,
+      async (error, professors) => {
+        if (error) {
+          return callback(error, null);
+        }
 
-            // Start timing the number of course ratings check
-            const checkTimerLabel = `Check Course Ratings Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            console.time(checkTimerLabel);
+        if (!professors || professors.length === 0) {
+          return callback(
+            new Error("No professors found in the specified department"),
+            null,
+          );
+        }
 
-            // Process professors sequentially to avoid overwhelming the server
-            for (const professor of professors) {
-                try {
-                    // Check if stop was requested
-                    if (shouldStopSearch && shouldStopSearch()) {
-                        console.log('Stop signal received, cancelling course search...');
-                        return;
-                    }
-                    
-                    // Check if skip was requested for course checking phase
-                    if (shouldSkipCourseCheck && shouldSkipCourseCheck()) {
-                        console.log('Skip signal received, stopping course check...');
-                        break;
-                    }
-                    
-                    processedCount++;
-                    console.log(`Processing ${processedCount}/${professors.length}: ${professor.name}`);
-                    
-                    if (progressCallback) {
-                        const progress = 55 + (processedCount / professors.length) * 40;
-                        progressCallback('course-check', progress, `Checking professor ${processedCount}/${professors.length}: ${professor.lastName} ${professor.firstName}...`);
-                    }
-                    
-                    const numRatings = await getNumCourseRatings(professor.profileURL, courseName);
-                    
-                    if (numRatings > 0) {
-                        professorsWithCourse.push({
-                            name: professor.name,
-                            firstName: professor.firstName,
-                            lastName: professor.lastName,
-                            department: professor.department,
-                            university: professor.university,
-                            profileURL: professor.profileURL,
-                            numRatings: numRatings
-                        });
-                        console.log(`✓ ${professor.name} has ratings for ${courseName}`);
-                    }
-                    
-                } catch (error) {
-                    console.error(`Error processing professor ${professor.name}:`, error.message);
-                }
+        console.log(
+          `\nStep 2: Checking ${professors.length} professors for course ${courseName}...`,
+        );
+
+        if (progressCallback) {
+          progressCallback(
+            "course-check",
+            55,
+            `Found ${professors.length} professors, checking for course ratings...`,
+          );
+        }
+
+        const professorsWithCourse = [];
+        let processedCount = 0;
+
+        // Start timing the number of course ratings check
+        const checkTimerLabel = `Check Course Ratings Time: ${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        console.time(checkTimerLabel);
+
+        // Process professors sequentially to avoid overwhelming the server
+        for (const professor of professors) {
+          try {
+            // Check if stop was requested
+            if (shouldStopSearch && shouldStopSearch()) {
+              console.log("Stop signal received, cancelling course search...");
+              return;
             }
-            
-            console.log(`\nSearch complete! Found ${professorsWithCourse.length} professors with ratings for ${courseName}`);
-            console.timeEnd(checkTimerLabel);
-            console.timeEnd(timerLabel);
-            
+
+            // Check if skip was requested for course checking phase
+            if (shouldSkipCourseCheck && shouldSkipCourseCheck()) {
+              console.log("Skip signal received, stopping course check...");
+              break;
+            }
+
+            processedCount++;
+            console.log(
+              `Processing ${processedCount}/${professors.length}: ${professor.name}`,
+            );
+
             if (progressCallback) {
-                progressCallback('complete', 100, `Found ${professorsWithCourse.length} professors teaching ${courseName}!`);
+              const progress = 55 + (processedCount / professors.length) * 40;
+              progressCallback(
+                "course-check",
+                progress,
+                `Checking professor ${processedCount}/${professors.length}: ${professor.lastName} ${professor.firstName}...`,
+              );
             }
-            
-            callback(null, professorsWithCourse);
-        }, progressCallback, shouldSkipProfessorLoad, shouldStopSearch);
-        
-    } catch (error) {
-        console.error('Error in findProfessorsForCourse:', error.message);
-        callback(error, null);
-    }
+
+            const numRatings = await getNumCourseRatings(
+              professor.profileURL,
+              courseName,
+            );
+
+            if (numRatings > 0) {
+              professorsWithCourse.push({
+                name: professor.name,
+                firstName: professor.firstName,
+                lastName: professor.lastName,
+                department: professor.department,
+                university: professor.university,
+                profileURL: professor.profileURL,
+                numRatings: numRatings,
+              });
+              console.log(`✓ ${professor.name} has ratings for ${courseName}`);
+            }
+          } catch (error) {
+            console.error(
+              `Error processing professor ${professor.name}:`,
+              error.message,
+            );
+          }
+        }
+
+        console.log(
+          `\nSearch complete! Found ${professorsWithCourse.length} professors with ratings for ${courseName}`,
+        );
+        console.timeEnd(checkTimerLabel);
+        console.timeEnd(timerLabel);
+
+        if (progressCallback) {
+          progressCallback(
+            "complete",
+            100,
+            `Found ${professorsWithCourse.length} professors teaching ${courseName}!`,
+          );
+        }
+
+        callback(null, professorsWithCourse);
+      },
+      progressCallback,
+      shouldSkipProfessorLoad,
+      shouldStopSearch,
+    );
+  } catch (error) {
+    console.error("Error in findProfessorsForCourse:", error.message);
+    callback(error, null);
+  }
 }
 
 module.exports = findProfessorsForCourse;

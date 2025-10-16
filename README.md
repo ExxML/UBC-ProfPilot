@@ -33,15 +33,17 @@ UBC ProfPilot is a web app designed to help students make informed decisions abo
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **Framework**: React.js
 - **Styling**: TailwindCSS
 - **HTTP Client**: Axios
 - **Real-time Communication**: Socket.IO
 
 ### Backend
+
 - **Runtime**: Node.js
 - **Framework**: Express.js
-- **Web Scraping**: 
+- **Web Scraping**:
   - Playwright (Chromium browser)
   - Cheerio (HTML parsing)
   - Axios (HTTP requests with custom connection pooling)
@@ -83,11 +85,13 @@ UBC-ProfPilot/
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - **Node.js** (v14 or higher recommended)
 - **npm** (v6 or higher)
 - **Gemini API Key** (required for professor rating summaries)
 
 ### Backend Setup
+
 1. Navigate to the `backend` directory:
    ```bash
    cd backend
@@ -110,6 +114,7 @@ UBC-ProfPilot/
    The server will start on `http://localhost:3001`
 
 ### Frontend Setup
+
 1. Navigate to the `frontend` directory:
    ```bash
    cd frontend
@@ -135,6 +140,7 @@ UBC-ProfPilot/
 The backend includes a Dockerfile that uses the official Playwright image to ensure all browser dependencies are properly installed. This is **required** for deployment environments.
 
 **Key Docker features:**
+
 - Based on `mcr.microsoft.com/playwright:v1.52.0-jammy`
 - Installs Chromium browser with all system dependencies
 - Direct Node.js execution (PID 1) for proper signal handling
@@ -143,6 +149,7 @@ The backend includes a Dockerfile that uses the official Playwright image to ens
 ## 🏢 Deployment
 
 ### Backend Deployment (Render)
+
 1. **Platform**: Render Web Service
 2. **Build Environment**: Select **Docker** (required for Playwright Chromium)
 3. **Configuration**:
@@ -152,6 +159,7 @@ The backend includes a Dockerfile that uses the official Playwright image to ens
      - `FRONTEND_URL` - Full URL of your deployed frontend (e.g., `https://your-frontend.vercel.app`)
 
 ### Frontend Deployment (Vercel)
+
 1. **Platform**: Vercel (Recommended for fast cold starts and CDN distribution)
 2. **Framework Preset**: Select **"Create React App"**
 3. **Configuration**:
@@ -163,14 +171,17 @@ The backend includes a Dockerfile that uses the official Playwright image to ens
 ## 🔧 Configuration
 
 ### University Settings
+
 University configuration can be modified in `frontend/src/config.js`:
+
 ```javascript
 export const UNIVERSITY_CONFIG = {
-  name: 'University of British Columbia',
-  shortName: 'UBC',
-  number: '1413'  // RateMyProfessors university ID
+  name: "University of British Columbia",
+  shortName: "UBC",
+  number: "1413", // RateMyProfessors university ID
 };
 ```
+
 The `config.js` file also contains mappings for 140+ UBC departments to their RateMyProfessors department IDs. These are used for course searches.
 
 ## 📡 API Endpoints
@@ -178,14 +189,17 @@ The `config.js` file also contains mappings for 140+ UBC departments to their Ra
 The backend provides the following REST API endpoints:
 
 ### GET `/professor`
+
 Search for a professor and get their ratings data.
 
 **Query Parameters:**
+
 - `fname` - First name
-- `lname` - Last name  
+- `lname` - Last name
 - `university` - University number (e.g., '1413' for UBC)
 
 **Response:**
+
 ```json
 {
   "URL": "https://www.ratemyprofessors.com/professor/...",
@@ -201,14 +215,17 @@ Search for a professor and get their ratings data.
 ```
 
 ### GET `/course`
+
 Find all professors who have taught a specific course.
 
 **Query Parameters:**
+
 - `course_name` - Course code (e.g., 'CPSC 110')
 - `department_number` - Department ID from RateMyProfessors
 - `university_number` - University ID (e.g., '1413')
 
 **Response:**
+
 ```json
 {
   "course_name": "CPSC 110",
@@ -227,15 +244,18 @@ Find all professors who have taught a specific course.
 ```
 
 ### Socket.IO Events
+
 The application uses Socket.IO for real-time progress updates:
 
 **Client → Server:**
+
 - `start-professor-search` - Initiate professor search
 - `start-course-search` - Initiate course search
 - `skip-ratings-load` - Skip loading additional ratings
 - `skip-professors-load` - Skip loading professor details
 
 **Server → Client:**
+
 - `search-progress` - Progress updates during professor search
 - `course-search-progress` - Progress updates during course search
 - `search-complete` - Professor search results
@@ -245,6 +265,7 @@ The application uses Socket.IO for real-time progress updates:
 ## 📊 Data Sources
 
 All professor ratings and course information are sourced from [RateMyProfessors.com](https://www.ratemyprofessors.com). The application:
+
 - Scrapes data in real-time (no database required)
 - Uses Playwright for dynamic content loading
 - Implements connection pooling for efficient HTTP requests

@@ -1,14 +1,14 @@
-import CircularProgress from './circular-progress.js';
+import CircularProgress from "./circular-progress.js";
 
-const ProgressDisplay = ({ 
-  loading, 
-  progress, 
-  onStop, 
-  onSkip, 
+const ProgressDisplay = ({
+  loading,
+  progress,
+  onStop,
+  onSkip,
   title,
   searchType,
   skipPhases = [],
-  skipTitle = 'Skip Loading'
+  skipTitle = "Skip Loading",
 }) => {
   if (!loading) return null;
 

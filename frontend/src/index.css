@@ -26,37 +26,71 @@
 .liquid-bg::before {
   left: -20vmax;
   top: -15vmax;
-  background: radial-gradient(circle at center, rgba(59, 130, 246, 0.6), transparent 60%);
+  background: radial-gradient(
+    circle at center,
+    rgba(59, 130, 246, 0.6),
+    transparent 60%
+  );
   animation: blobFloat1 15s ease-in-out infinite;
 }
 
 .liquid-bg::after {
   right: -20vmax;
   bottom: -15vmax;
-  background: radial-gradient(circle at center, rgba(147, 51, 234, 0.55), transparent 60%);
+  background: radial-gradient(
+    circle at center,
+    rgba(147, 51, 234, 0.55),
+    transparent 60%
+  );
   animation: blobFloat2 15s ease-in-out infinite;
 }
 
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  25% { background-position: 100% 50%; }
-  50% { background-position: 100% 100%; }
-  75% { background-position: 0% 100%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 100%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes blobFloat1 {
-  0% { transform: translate(-10vmax, -5vmax) scale(1); }
-  33% { transform: translate(22vmax, 12vmax) scale(1.18); }
-  66% { transform: translate(6vmax, -18vmax) scale(1.08); }
-  100% { transform: translate(-10vmax, -5vmax) scale(1); }
+  0% {
+    transform: translate(-10vmax, -5vmax) scale(1);
+  }
+  33% {
+    transform: translate(22vmax, 12vmax) scale(1.18);
+  }
+  66% {
+    transform: translate(6vmax, -18vmax) scale(1.08);
+  }
+  100% {
+    transform: translate(-10vmax, -5vmax) scale(1);
+  }
 }
 
 @keyframes blobFloat2 {
-  0% { transform: translate(8vmax, 6vmax) scale(1.02); }
-  33% { transform: translate(-24vmax, -10vmax) scale(1.15); }
-  66% { transform: translate(-6vmax, 20vmax) scale(1.07); }
-  100% { transform: translate(8vmax, 6vmax) scale(1.02); }
+  0% {
+    transform: translate(8vmax, 6vmax) scale(1.02);
+  }
+  33% {
+    transform: translate(-24vmax, -10vmax) scale(1.15);
+  }
+  66% {
+    transform: translate(-6vmax, 20vmax) scale(1.07);
+  }
+  100% {
+    transform: translate(8vmax, 6vmax) scale(1.02);
+  }
 }
 
 /* Glass utility for readable translucent surfaces */
@@ -81,7 +115,6 @@
     opacity: 1;
   }
 }
-
 
 .progress-bounce-in {
   animation: bounceIn 0.6s ease-out;
