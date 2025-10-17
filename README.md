@@ -34,10 +34,9 @@ UBC ProfPilot is a web app designed to help students make informed decisions abo
 
 ### Frontend
 
-- **Framework**: React.js
+- **Framework**: ReactJS
 - **Styling**: TailwindCSS
-- **HTTP Client**: Axios
-- **Real-time Communication**: Socket.IO
+- **Bidirectional Communication**: Socket.IO
 
 ### Backend
 
@@ -46,10 +45,8 @@ UBC ProfPilot is a web app designed to help students make informed decisions abo
 - **Web Scraping**:
   - Playwright (Chromium browser)
   - Cheerio (HTML parsing)
-  - Axios (HTTP requests with custom connection pooling)
-- **API Integration**: Gemini API (Google's AI models for rating summaries)
-- **Real-time Communication**: Socket.IO (progress updates and search coordination)
-- **Environment Management**: dotenv
+- **API Integration**: Gemini API (for summarizing ratings)
+- **Bidirectional Communication**: Socket.IO (progress updates on searches)
 
 ## 📁 Project Structure
 
@@ -72,7 +69,6 @@ UBC-ProfPilot/
 │
 ├── backend/                 # Node.js backend server
 │   ├── src/
-│   │   ├── axios-config.js # Axios configuration with connection pooling
 │   │   ├── browser.js      # Playwright browser automation
 │   │   ├── course-data.js  # Course data scraping logic
 │   │   ├── index.js        # Express server and Socket.IO setup
@@ -268,7 +264,6 @@ All professor ratings and course information are sourced from [RateMyProfessors.
 
 - Scrapes data in real-time (no database required)
 - Uses Playwright for dynamic content loading
-- Implements connection pooling for efficient HTTP requests
 - Generates AI summaries using Google's Gemini models
 
 ## 📝 License

@@ -6,10 +6,6 @@ const {
   navigate,
   safeClose,
 } = require("./browser");
-const axios = require("axios");
-
-// Create axios instance with default settings
-const axiosInstance = axios.create();
 
 // Function to search for all professors in a department at a university
 async function searchProfessorsByDepartment(
@@ -375,8 +371,9 @@ async function searchProfessorsByDepartment(
 // Function to find the number of ratings a professor has for a specific course (scraped from page source)
 async function getNumCourseRatings(profURL, courseCode) {
   try {
-    // Fetch the page HTML using the configured axios instance
-    const { data: html } = await axiosInstance.get(profURL);
+    // Fetch the page HTML
+    const response = await fetch(profURL);
+    const html = await response.text();
 
     // Load HTML into cheerio
     const $ = cheerio.load(html);

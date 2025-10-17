@@ -1,8 +1,4 @@
 const cheerio = require("cheerio");
-const axios = require("axios");
-
-// Create axios instance with default settings
-const axiosInstance = axios.create();
 
 // Add headers to mimic a real browser request
 const headers = {
@@ -37,14 +33,13 @@ function searchForProf(
     progressCallback("url-search", 15, "Contacting RateMyProfessors...");
   }
 
-  axiosInstance
-    .get(searchURL, {
+  fetch(searchURL, {
       headers: headers,
     })
-    .then(function (response) {
+    .then(async function (response) {
       // callback function
       if (response.status === 200) {
-        const html = response.data;
+        const html = await response.text();
         console.log("Received response from RateMyProfessors");
 
         if (progressCallback) {
@@ -128,26 +123,25 @@ function searchForProf(
     })
     .catch(function (error) {
       console.error("Error in searchForProf:", error.message);
-      if (error.response) {
-        console.error("Response status:", error.response.status);
-        console.error("Response headers:", error.response.headers);
-
-        if (error.response.status === 403 || error.response.status === 429) {
-          console.error(
-            "You have been blocked by RateMyProfessors. Try the following:",
-          );
-          console.error("1. Wait for some time before making more requests");
-          console.error("2. Use a proxy or VPN");
-          console.error(
-            "3. Check if you need to solve a CAPTCHA by visiting the site in your browser",
-          );
-        }
+      
+      // Check if error has response status (fetch errors don't have response property)
+      const status = error.status || null;
+      
+      if (status === 403 || status === 429) {
+        console.error(
+          "You have been blocked by RateMyProfessors. Try the following:",
+        );
+        console.error("1. Wait for some time before making more requests");
+        console.error("2. Use a proxy or VPN");
+        console.error(
+          "3. Check if you need to solve a CAPTCHA by visiting the site in your browser",
+        );
       }
 
       callback({
         error: "Error fetching professor data",
         details: error.message,
-        status: error.response ? error.response.status : null,
+        status: status,
       });
     });
 }
