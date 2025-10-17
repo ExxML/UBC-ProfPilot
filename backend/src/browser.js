@@ -38,7 +38,6 @@ async function safeClose(resource, resourceName = "resource") {
 
 class BrowserPool {
   constructor() {
-    this.lastUsed = new Map();
     this.contextPool = []; // Pool of reusable contexts
     this.cleanupInterval = null;
     this.isShuttingDown = false;
@@ -59,7 +58,6 @@ class BrowserPool {
       try {
         // Quick health check
         await this.persistentBrowser.version();
-        this.lastUsed.set("persistent", Date.now());
         return this.persistentBrowser;
       } catch (error) {
         console.warn(
@@ -112,7 +110,6 @@ class BrowserPool {
     });
 
     this.persistentBrowser = browser;
-    this.lastUsed.set("persistent", Date.now());
 
     // Set up browser-level optimizations
     browser.on("disconnected", () => {
@@ -315,7 +312,6 @@ class BrowserPool {
             );
             await safeClose(this.persistentBrowser, "persistent browser");
             this.persistentBrowser = null;
-            this.lastUsed.delete("persistent");
           }
         }
       } catch (error) {
@@ -382,7 +378,6 @@ class BrowserPool {
     ]);
 
     // Clear all data structures
-    this.lastUsed.clear();
     this.contextPool.length = 0;
     this.persistentBrowser = null;
 
@@ -403,12 +398,10 @@ class BrowserPool {
           ),
         ]);
         this.persistentBrowser = null;
-        this.lastUsed.delete("persistent");
       } catch (error) {
         console.error("Error closing persistent browser:", error.message);
         // Clear the reference even if close failed
         this.persistentBrowser = null;
-        this.lastUsed.delete("persistent");
         throw error;
       }
     } else {
