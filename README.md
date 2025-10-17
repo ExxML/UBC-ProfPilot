@@ -241,22 +241,24 @@ Find all professors who have taught a specific course.
 
 ### Socket.IO Events
 
-The application uses Socket.IO for real-time progress updates:
+The application uses Socket.IO for real-time communication and progress updates during searches:
 
-**Client → Server:**
+**Client → Server Events:**
 
-- `start-professor-search` - Initiate professor search
-- `start-course-search` - Initiate course search
-- `skip-ratings-load` - Skip loading additional ratings
-- `skip-professors-load` - Skip loading professor details
+- **`start-professor-search`** - Initiates a professor search
+- **`skip-ratings-load`** - Skips loading individual ratings during professor search
+- **`start-course-search`** - Initiates a course search
+- **`skip-professors-load`** - Skips loading professor details during course search
+- **`stop-search`** - Cancels an ongoing search
 
-**Server → Client:**
+**Server → Client Events:**
 
-- `search-progress` - Progress updates during professor search
-- `course-search-progress` - Progress updates during course search
-- `search-complete` - Professor search results
-- `course-search-complete` - Course search results
-- `search-error` / `course-search-error` - Error notifications
+- **`search-progress`** - Progress updates during professor search
+- **`search-error`** - Error notification for professor search
+- **`course-search-progress`** - Progress updates during course search
+- **`course-search-error`** - Error notification for course search
+- **`course-search-complete`** - Course search completion
+- **`server_shutdown`** - Server shutdown notification
 
 ## 📊 Data Sources
 
