@@ -86,7 +86,7 @@ const CourseSearch = () => {
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              Enter the course code (no spaces)
+              Enter the course code (no spaces, case-insensitive)
             </p>
           </div>
           <div>
