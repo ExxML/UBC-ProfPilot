@@ -3,11 +3,12 @@ const { chromium } = require("playwright");
 
 // Single persistent browser config
 const CONFIG = {
-  MAX_CONTEXT_POOL_SIZE: 2, // Context pool for reuse
+  MAX_CONTEXT_POOL_SIZE: 1, // Context pool for reuse
   BROWSER_TIMEOUT: 120000,
   PAGE_TIMEOUT: 120000,
   NAVIGATION_TIMEOUT: 120000,
   PRELOAD_CONTEXTS: 1, // Pre-warm contexts
+  MAX_ACTIVE_CONTEXTS: 3, // Limit concurrent contexts
 };
 
 // Helper function to safely close resources by checking if they're already closed first
@@ -42,6 +43,7 @@ class BrowserPool {
     this.cleanupInterval = null;
     this.isShuttingDown = false;
     this.persistentBrowser = null; // Single persistent browser
+    this.activeContexts = 0; // Track concurrent contexts
 
     // Start optimization routines
     this.startCleanupRoutine();
@@ -125,6 +127,11 @@ class BrowserPool {
   }
 
   async createContext(browser) {
+    // Wait if at capacity (limit concurrent contexts)
+    while (this.activeContexts >= CONFIG.MAX_ACTIVE_CONTEXTS) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
     // Verify browser is still connected before creating context
     try {
       await browser.version();
@@ -144,6 +151,7 @@ class BrowserPool {
         const testPage = await context.newPage();
         await safeClose(testPage, "test page");
 
+        this.activeContexts++;
         return this.wrapContextForReuse(context);
       } catch (error) {
         // Context is dead, continue to create new one
@@ -157,7 +165,6 @@ class BrowserPool {
     const context = await browser.newContext({
       // Minimal context configuration for maximum performance
       userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
-      viewport: { width: 320, height: 240 }, // Minimal viewport for faster rendering
       deviceScaleFactor: 1,
       serviceWorkers: "block",
       reducedMotion: "reduce",
@@ -175,6 +182,10 @@ class BrowserPool {
       locale: undefined,
       hasTouch: false,
       isMobile: false,
+      geolocation: undefined,
+      recordVideo: undefined,
+      recordHar: undefined,
+      proxy: undefined,
       extraHTTPHeaders: {
         Accept: "text/html,application/xhtml+xml",
         "Accept-Language": "en-US,en;q=0.9",
@@ -235,6 +246,7 @@ class BrowserPool {
       }
     });
 
+    this.activeContexts++;
     return this.wrapContextForReuse(context);
   }
 
@@ -245,6 +257,9 @@ class BrowserPool {
 
     context.close = async function () {
       try {
+        // Decrement active context counter
+        pool.activeContexts--;
+
         // Clear pages but keep context alive
         const pages = await this.pages();
         await Promise.all(pages.map((page) => safeClose(page, "page")));
@@ -270,6 +285,9 @@ class BrowserPool {
         }
       } catch (error) {
         console.warn("Error preparing context for reuse:", error.message);
+        if (pool.activeContexts > 0) {
+          pool.activeContexts--;
+        }
       }
 
       // Close if can't reuse
@@ -314,10 +332,26 @@ class BrowserPool {
             this.persistentBrowser = null;
           }
         }
+
+        // Periodically clear browser cache/cookies from all contexts
+        for (const context of this.contextPool) {
+          try {
+            // Use CDP to clear cache
+            const pages = await context.pages();
+            if (pages.length > 0) {
+              const cdpSession = await pages[0].context().newCDPSession(pages[0]);
+              await cdpSession.send('Network.clearBrowserCache');
+              await cdpSession.detach();
+            }
+            await context.clearCookies();
+          } catch (error) {
+            console.warn("Error clearing cache/cookies:", error.message);
+          }
+        }
       } catch (error) {
         console.error("Error in cleanup routine:", error.message);
       }
-    }, 10000); // Run cleanup every 10 seconds
+    }, 20000); // Periodically run cleanup
   }
 
   async closeAll() {
@@ -380,6 +414,7 @@ class BrowserPool {
     // Clear all data structures
     this.contextPool.length = 0;
     this.persistentBrowser = null;
+    this.activeContexts = 0;
 
     console.log("All browsers and contexts closed successfully");
   }
@@ -429,9 +464,6 @@ async function createPage(context) {
   await page.setDefaultTimeout(CONFIG.PAGE_TIMEOUT);
   await page.setDefaultNavigationTimeout(CONFIG.NAVIGATION_TIMEOUT);
 
-  // Minimal viewport for faster rendering
-  await page.setViewportSize({ width: 320, height: 240 });
-
   // Disable animations and transitions for faster page interactions
   await page.addInitScript(() => {
     // Disable CSS animations and transitions
@@ -449,6 +481,17 @@ async function createPage(context) {
     window.setInterval = function (fn, delay, ...args) {
       return originalSetInterval(fn, Math.min(delay, 10), ...args);
     };
+  });
+
+  // Add memory cleanup on page navigation
+  page.on('framenavigated', async () => {
+    try {
+      await page.evaluate(() => {
+        if (window.gc) window.gc();
+      });
+    } catch (e) {
+      // Garbage collection not available, pass
+    }
   });
 
   return page;
