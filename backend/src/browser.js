@@ -345,7 +345,10 @@ class BrowserPool {
             }
             await context.clearCookies();
           } catch (error) {
-            console.warn("Error clearing cache/cookies:", error.message);
+            // If context is closed/invalid, skip
+            if (!error.message.includes("Target page, context or browser has been closed")) {
+              console.warn("Error clearing cache/cookies:", error.message);
+            }
           }
         }
       } catch (error) {
