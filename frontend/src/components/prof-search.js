@@ -126,7 +126,7 @@ const ProfessorSearch = () => {
         university: UNIVERSITY_CONFIG.name,
         phase: "url-search",
       },
-      "Initializing API (~2 mins)... If >4 mins, please reload the page and try again.",
+      "Cold-starting API (~2 mins)... If >4 mins, please reload the page and try again.",
     );
   };
 
@@ -204,7 +204,7 @@ const ProfessorSearch = () => {
         title="Searching Professor"
         searchType="professor"
         skipPhases={["ratings-load"]}
-        skipTitle="Generate AI summary"
+        skipTitle="Skip to summary"
       />
 
       {/* Error Message */}

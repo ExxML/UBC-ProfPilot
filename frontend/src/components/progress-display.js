@@ -40,10 +40,10 @@ const ProgressDisplay = ({
         <div className="absolute bottom-4 right-4">
           <button
             onClick={onSkip}
-            className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 shadow-md transition-colors duration-200"
+            className="px-4 py-2 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 shadow-md transition-colors duration-200"
             title={skipTitle}
           >
-            Skip Loading
+            {searchType === 'prof' ? 'Skip remaining ratings' : 'Skip remaining professors'}
           </button>
         </div>
       )}
