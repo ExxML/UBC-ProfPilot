@@ -133,7 +133,7 @@ async function searchProfessorsByDepartment(
         return jsHandle.asElement();
       };
 
-      while (loadMoreVisible && attemptCount < maxAttempts) {
+      while (loadMoreVisible && attemptCount < maxAttempts && currentProfessorsCount < 195) {
         // && currentProfessorsCount < 195) {
         try {
           // Check if stop was requested

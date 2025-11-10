@@ -200,7 +200,7 @@ async function getProfData(
       return jsHandle.asElement();
     };
 
-    while (loadMoreVisible && attemptCount < maxAttempts) {
+    while (loadMoreVisible && attemptCount < maxAttempts && currentRatingsCount < 95) {
       // && currentRatingsCount < 95) {
       try {
         // Check if stop was requested
