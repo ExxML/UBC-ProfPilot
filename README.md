@@ -1,6 +1,20 @@
+<div align="center">
+
+<img src="frontend/src/assets/ProfPilot_Icon.png" alt="ProfPilot Icon" width="120" height="120">
+
 # UBC ProfPilot
 
 UBC ProfPilot is a web app designed to help students make informed decisions about their course selections by providing comprehensive information about UBC professors and courses. The application sources data from RateMyProfessors to offer a comprehensive view of professor ratings, course information, and more!
+
+[![React](https://img.shields.io/badge/React-%230D6EFD?logo=react)](https://reactjs.org/)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
+
+### Check it out! https://ubcprofpilot.vercel.app
+
+</div>
 
 ## 📑 Table of Contents
 
