@@ -4,7 +4,7 @@
 
 # UBC ProfPilot
 
-UBC ProfPilot is a web app designed to help students make informed decisions about their course selections by providing comprehensive information about UBC professors and courses. The application sources data from RateMyProfessors to offer a comprehensive view of professor ratings, course information, and more!
+A web app that summarizes RateMyProfessor reviews with AI and indexes past instructors for any course to help students choose classes with confidence.
 
 [![React](https://img.shields.io/badge/React-%230D6EFD?logo=react)](https://reactjs.org/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
