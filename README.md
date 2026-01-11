@@ -10,7 +10,7 @@ A web app that summarizes RateMyProfessor reviews with AI and indexes past instr
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-orange.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 ### Check it out! https://ubcprofpilot.vercel.app
 
@@ -284,4 +284,4 @@ All professor ratings and course information are sourced from [RateMyProfessors.
 
 ## 📝 License
 
-This project is licensed under the MIT License.
+This project is licensed under the GNU General Public License v3.0.
