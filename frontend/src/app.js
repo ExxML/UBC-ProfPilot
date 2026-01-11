@@ -10,7 +10,6 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen text-gray-900">
-      <div className="liquid-bg" aria-hidden="true"></div>
       {/* Header */}
       <header className="glass border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -48,7 +47,7 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow max-w-7xl mx-auto px-4 py-8 mb-24 sm:px-6 lg:px-8">
+      <main className="flex-grow max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Tab Navigation */}
         <div className="glass overflow-hidden rounded-lg border shadow-sm">
           <nav className="flex border-b border-gray-200">
@@ -113,9 +112,9 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="glass fixed bottom-0 w-full mt-12">
-        <div className="relative max-w-7xl mx-auto px-4 py-5 sm:px-6 lg:px-8">
-          <div className="text-center text-sm text-gray-500">
+      <footer className="glass w-full">
+        <div className="relative max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          <div className="text-center text-sm text-black">
             <p className="mt-1" style={{ marginBottom: "10px" }}>
               Data sourced from{" "}
               <a
@@ -128,7 +127,7 @@ function App() {
               </a>
             </p>
           </div>
-          <div className="text-center text-sm text-gray-500">
+          <div className="text-center text-sm text-black">
             <p className="mt-1">
               This site is not affiliated with RateMyProfessors or the
               University of British Columbia

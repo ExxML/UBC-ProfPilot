@@ -2,95 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Liquid glass background */
-.liquid-bg {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  background: linear-gradient(120deg, #0ea5e9, #3b82f6, #9333ea);
-  background-size: 300% 300%;
-  animation: gradientShift 12s ease-in-out infinite;
-}
-
-.liquid-bg::before,
-.liquid-bg::after {
-  content: "";
-  position: absolute;
-  width: 90vmax;
-  height: 90vmax;
-  filter: blur(60px);
-  opacity: 0.7;
-}
-
-.liquid-bg::before {
-  left: -20vmax;
-  top: -15vmax;
-  background: radial-gradient(
-    circle at center,
-    rgba(59, 130, 246, 0.6),
-    transparent 60%
-  );
-  animation: blobFloat1 15s ease-in-out infinite;
-}
-
-.liquid-bg::after {
-  right: -20vmax;
-  bottom: -15vmax;
-  background: radial-gradient(
-    circle at center,
-    rgba(147, 51, 234, 0.55),
-    transparent 60%
-  );
-  animation: blobFloat2 15s ease-in-out infinite;
-}
-
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  25% {
-    background-position: 100% 50%;
-  }
-  50% {
-    background-position: 100% 100%;
-  }
-  75% {
-    background-position: 0% 100%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes blobFloat1 {
-  0% {
-    transform: translate(-10vmax, -5vmax) scale(1);
-  }
-  33% {
-    transform: translate(22vmax, 12vmax) scale(1.18);
-  }
-  66% {
-    transform: translate(6vmax, -18vmax) scale(1.08);
-  }
-  100% {
-    transform: translate(-10vmax, -5vmax) scale(1);
-  }
-}
-
-@keyframes blobFloat2 {
-  0% {
-    transform: translate(8vmax, 6vmax) scale(1.02);
-  }
-  33% {
-    transform: translate(-24vmax, -10vmax) scale(1.15);
-  }
-  66% {
-    transform: translate(-6vmax, 20vmax) scale(1.07);
-  }
-  100% {
-    transform: translate(8vmax, 6vmax) scale(1.02);
-  }
+body {
+  background-image: url("./assets/UBC_Background.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-color: rgba(0, 0, 0, 0.45);
+  background-blend-mode: darken;
 }
 
 /* Glass utility for readable translucent surfaces */
@@ -120,9 +39,6 @@
   animation: bounceIn 0.6s ease-out;
 }
 @media (prefers-reduced-motion: reduce) {
-  .liquid-bg,
-  .liquid-bg::before,
-  .liquid-bg::after,
   .progress-bounce-in {
     animation: none;
   }
